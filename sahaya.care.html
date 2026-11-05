@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4338ca" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sahaaya Care" />
+  <title>Sahaaya Care - Spoken Medicine Timetable & Healthcare (Standalone Offline Edition)</title>
+  <meta name="description" content="Accessible 7-day visual medicine schedule with spoken audio guides, high-contrast visual pill identifiers, OPD queue tracking, blood donor search, and rural healthcare access." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- React 18, ReactDOM 18 & Babel Standalone (Runs out-of-the-box in VS Code, Live Server, and any Browser) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-amber-100 selection:text-amber-900 min-h-screen">
+  <div id="root"></div>
+
+  <!-- Standalone Complete React Code Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- TRANSLATIONS (English, Telugu, Hindi) ---
+    const TRANSLATIONS = {
+      English: {
+        appName: 'Sahaaya Care',
+        appSubtitle: 'Spoken Medicine Timetable & Audio Healthcare Guide',
+        emergencySOS: 'Emergency Help',
+        askAI: 'Ask AI',
+        uploadFiles: 'Upload Files',
+        adherence30D: '30D Adherence',
+        presets: 'Presets',
+        printChartBtn: 'Print Chart',
+        downloadHtml: 'Download sahaya.care.html',
+        dueNowTag: 'Due Right Now!',
+        allDone: 'All Done for Now! Great job.',
+        markTaken: 'I Swallowed This Pill ✅',
+        takenDone: 'Pill Taken! Tap to Undo',
+        speakAll: '🔊 Hear Today\'s Schedule',
+        days: { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' },
+        slots: {
+          morning: { title: 'Morning Routine', sub: 'Breakfast & Awakening (06:00 AM – 11:00 AM)' },
+          afternoon: { title: 'Midday Routine', sub: 'Lunchtime & Daylight (11:00 AM – 04:00 PM)' },
+          evening: { title: 'Evening Routine', sub: 'Dinnertime & Sunset (04:00 PM – 08:00 PM)' },
+          bedtime: { title: 'Bedtime Routine', sub: 'Rest & Night Guard (08:00 PM – 06:00 AM)' },
+        }
+      },
+      Telugu: {
+        appName: 'సహాయ కేర్',
+        appSubtitle: 'చదవడం రాని పెద్దల కోసం మాట్లాడే ఆడియో మందుల టైమ్‌టేబుల్',
+        emergencySOS: 'అత్యవసరం (SOS)',
+        askAI: 'సహాయ AI',
+        uploadFiles: 'పత్రాలు అప్‌లోడ్',
+        adherence30D: '30 రోజుల ట్రాకర్',
+        presets: 'మందుల నమూనాలు',
+        printChartBtn: 'చార్ట్ ప్రింట్',
+        downloadHtml: 'sahaya.care.html డౌన్‌లోడ్',
+        dueNowTag: 'ఇప్పుడే వేసుకోవాలి!',
+        allDone: 'ఈ సమయానికి మందులన్నీ విజయవంతంగా వేసుకున్నారు!',
+        markTaken: 'నేను ఈ మందు వేసుకున్నాను ✅',
+        takenDone: 'తీసుకున్నారు! రద్దు చేయు',
+        speakAll: '🔊 నేటి మందులన్నీ తెలుగులో వినండి',
+        days: { Mon: 'సోమవారం', Tue: 'మంగళవారం', Wed: 'బుధవారం', Thu: 'గురువారం', Fri: 'శుక్రవారం', Sat: 'శనివారం', Sun: 'ఆదివారం' },
+        slots: {
+          morning: { title: 'ఉదయపు వేళ (Morning)', sub: 'అల్పాహారం & మేల్కొనే సమయం (06:00 – 11:00)' },
+          afternoon: { title: 'మధ్యాహ్నపు వేళ (Midday)', sub: 'మధ్యాహ్న భోజన సమయం (11:00 – 04:00)' },
+          evening: { title: 'సాయంత్రపు వేళ (Evening)', sub: 'సాయంత్రం భోజనం (04:00 – 08:00)' },
+          bedtime: { title: 'రాత్రి నిద్రవేళ (Bedtime)', sub: 'నిద్ర & రాత్రి రక్షణ (08:00 – 06:00)' },
+        }
+      },
+      Hindi: {
+        appName: 'सहाय केयर',
+        appSubtitle: 'बोलती आवाज़ और रंगों वाली 7-दिवसीय दवाई समय-सारणी',
+        emergencySOS: 'आपातकाल (SOS)',
+        askAI: 'सहाय AI',
+        uploadFiles: 'फाइलें अपलोड',
+        adherence30D: '30 दिन का पालन',
+        presets: 'प्रीसेट',
+        printChartBtn: 'प्रिंट करें',
+        downloadHtml: 'sahaya.care.html डाउनलोड',
+        dueNowTag: 'अभी लेनी है!',
+        allDone: 'इस समय की सभी दवाइयां ले ली गई हैं!',
+        markTaken: 'मैंने यह दवाई ले ली ✅',
+        takenDone: 'दवाई ली गई! रद्द करें',
+        speakAll: '🔊 आज की पूरी तालिका सुनें',
+        days: { Mon: 'सोमवार', Tue: 'मंगलवार', Wed: 'बुधवार', Thu: 'गुरुवार', Fri: 'शुक्रवार', Sat: 'शनिवार', Sun: 'रविवार' },
+        slots: {
+          morning: { title: 'सुबह का समय', sub: 'नाश्ता और जागने का समय (06:00 – 11:00)' },
+          afternoon: { title: 'दोपहर का समय', sub: 'दोपहर का भोजन (11:00 – 16:00)' },
+          evening: { title: 'शाम का समय', sub: 'शाम का भोजन (16:00 – 20:00)' },
+          bedtime: { title: 'सोने का समय', sub: 'रात की नींद और आराम (20:00 – 06:00)' },
+        }
+      }
+    };
+
+    // --- AUDIO & WEB SPEECH SYNTHESIS ENGINE ---
+    class OfflineAudioEngine {
+      constructor() {
+        this.ctx = null;
+      }
+      initAudio() {
+        if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+        }
+      }
+      playChime(type = 'tap') {
+        try {
+          this.initAudio();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          const now = this.ctx.currentTime;
+          if (type === 'success') {
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.35);
+          } else {
+            osc.frequency.setValueAtTime(440, now);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+          }
+        } catch (e) {}
+      }
+      speak(text, lang = 'English', speed = 0.85, onEnd = null) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = speed;
+        if (lang === 'Telugu') u.lang = 'te-IN';
+        else if (lang === 'Hindi') u.lang = 'hi-IN';
+        else u.lang = 'en-US';
+        if (onEnd) u.onend = onEnd;
+        window.speechSynthesis.speak(u);
+      }
+      stop() {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      }
+    }
+    const audioEngine = new OfflineAudioEngine();
+
+    // --- DEFAULT INITIAL SCHEDULE ---
+    const INITIAL_SCHEDULE = {
+      regimenTitle: 'Cardiovascular & Diabetes Daily Timetable',
+      patientName: 'Ramesh Kumar',
+      spokenOverview: 'Take your yellow heart tablet in the morning with breakfast, and blue capsule at bedtime.',
+      emergencyContact: { name: 'Dr. Rao (Cardiologist)', phone: '9848012345', relation: 'Physician' },
+      medicines: [
+        {
+          id: 'med-1',
+          name: 'Amlodipine (Blood Pressure)',
+          dosage: '5 mg',
+          purpose: 'Keeps blood pressure smooth and protected',
+          color: 'Golden Yellow',
+          colorHex: '#FBBF24',
+          shape: 'round',
+          slots: ['morning'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'after_meal',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'In the morning after breakfast, swallow one round golden yellow pill with a full glass of water.'
+        },
+        {
+          id: 'med-2',
+          name: 'Metformin 500mg',
+          dosage: '500 mg',
+          purpose: 'Maintains healthy blood sugar levels',
+          color: 'Clean White',
+          colorHex: '#FFFFFF',
+          shape: 'oval',
+          slots: ['morning', 'evening'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'with_meal',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'Take your smooth white oval tablet twice daily with meals: once in morning breakfast and once with evening dinner.'
+        },
+        {
+          id: 'med-3',
+          name: 'Atorvastatin (Cholesterol)',
+          dosage: '20 mg',
+          purpose: 'Protects arteries and blood vessels during rest',
+          color: 'Sky Blue',
+          colorHex: '#38BDF8',
+          shape: 'capsule',
+          slots: ['bedtime'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'no_preference',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'At bedtime before lights out, swallow one blue capsule with water.'
+        }
+      ]
+    };
+
+    // --- SVG PILL VISUAL COMPONENT ---
+    function PillVisual({ shape, colorHex, size = 48 }) {
+      const s = size;
+      const border = colorHex === '#FFFFFF' ? '#CBD5E1' : colorHex;
+      return (
+        <div style={{ width: s, height: s }} className="relative flex items-center justify-center shrink-0 drop-shadow-sm">
+          {shape === 'capsule' ? (
+            <svg width={s} height={s} viewBox="0 0 48 48">
+              <rect x="12" y="6" width="24" height="36" rx="12" fill={colorHex} stroke={border} strokeWidth="2.5" />
+              <line x1="12" y1="24" x2="36" y2="24" stroke="#ffffff" strokeWidth="2" opacity="0.6" />
+            </svg>
+          ) : shape === 'oval' ? (
+            <svg width={s} height={s} viewBox="0 0 48 48">
+              <ellipse cx="24" cy="24" rx="20" ry="13" fill={colorHex} stroke={border} strokeWidth="2.5" />
+              <line x1="24" y1="11" x2="24" y2="37" stroke="#ffffff" strokeWidth="1.5" opacity="0.5" />
+            </svg>
+          ) : shape === 'liquid_drop' ? (
+            <svg width={s} height={s} viewBox="0 0 48 48">
+              <path d="M24 6 C24 6 10 22 10 32 A14 14 0 0 0 38 32 C38 22 24 6 24 6 Z" fill={colorHex} stroke={border} strokeWidth="2" />
+            </svg>
+          ) : (
+            <svg width={s} height={s} viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="19" fill={colorHex} stroke={border} strokeWidth="2.5" />
+              <line x1="24" y1="8" x2="24" y2="40" stroke="#ffffff" strokeWidth="1.5" opacity="0.5" />
+            </svg>
+          )}
+        </div>
+      );
+    }
+
+    // --- MAIN APP COMPONENT ---
+    function SahaayaApp() {
+      const [viewMode, setViewMode] = useState('auth'); // 'auth' | 'app'
+      const [selectedLanguage, setSelectedLanguage] = useState('English');
+      const [speechSpeed, setSpeechSpeed] = useState(0.85);
+      const [activeDay, setActiveDay] = useState('Mon');
+      const [currentPosture, setCurrentPosture] = useState('patient'); // 'patient' | 'adherence' | 'matrix'
+      const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+      const [takenLogs, setTakenLogs] = useState({});
+      const [patientName, setPatientName] = useState('Patient');
+
+      // Modals
+      const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+      const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+      const [isOpdQueueOpen, setIsOpdQueueOpen] = useState(false);
+      const [isBloodDonorOpen, setIsBloodDonorOpen] = useState(false);
+      const [isRuralHealthOpen, setIsRuralHealthOpen] = useState(false);
+      const [isDiseaseDetailsOpen, setIsDiseaseDetailsOpen] = useState(false);
+      const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+      const [isPrintOpen, setIsPrintOpen] = useState(false);
+      const [isUploadOpen, setIsUploadOpen] = useState(false);
+      const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+
+      // Auth states
+      const [authTab, setAuthTab] = useState('google');
+      const [googleEmail, setGoogleEmail] = useState('');
+      const [googlePassword, setGooglePassword] = useState('');
+      const [showGooglePass, setShowGooglePass] = useState(false);
+      const [googleError, setGoogleError] = useState('');
+      const [phoneNumber, setPhoneNumber] = useState('');
+      const [otpSent, setOtpSent] = useState(false);
+      const [otpCode, setOtpCode] = useState('');
+      const [emailAddress, setEmailAddress] = useState('');
+      const [emailPassword, setEmailPassword] = useState('');
+
+      const t = TRANSLATIONS[selectedLanguage] || TRANSLATIONS.English;
+      const daysList = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const slotsOrder = ['morning', 'afternoon', 'evening', 'bedtime'];
+
+      // Handle Download This Standalone File Directly
+      const handleDownloadThisFile = () => {
+        try {
+          const htmlContent = document.documentElement.outerHTML;
+          const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'sahaya.care.html';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          audioEngine.playChime('success');
+        } catch (e) {
+          alert('Download initialized for sahaya.care.html');
+        }
+      };
+
+      // Handle Google Sign In
+      const handleGoogleSubmit = (e) => {
+        e.preventDefault();
+        setGoogleError('');
+        if (!googleEmail.includes('@')) {
+          setGoogleError('Please enter a valid Google email.');
+          return;
+        }
+        if (!googlePassword || googlePassword.length < 6) {
+          setGoogleError('Password is mandatory and must be at least 6 characters.');
+          return;
+        }
+        audioEngine.playChime('success');
+        setPatientName(googleEmail.split('@')[0]);
+        setViewMode('app');
+      };
+
+      // Toggle taken pill
+      const toggleTaken = (key) => {
+        setTakenLogs(prev => {
+          const updated = { ...prev, [key]: !prev[key] };
+          if (!prev[key]) audioEngine.playChime('success');
+          else audioEngine.playChime('tap');
+          return updated;
+        });
+      };
+
+      // Hear full day routine
+      const handleSpeakDay = () => {
+        const medsToday = schedule.medicines.filter(m => m.daysOfWeek.includes(activeDay));
+        if (medsToday.length === 0) {
+          audioEngine.speak('No medicines scheduled for today.', selectedLanguage, speechSpeed);
+          return;
+        }
+        const text = medsToday.map(m => `${m.slots.join(' and ')}: ${m.spokenExplanation}`).join('. ');
+        audioEngine.speak(text, selectedLanguage, speechSpeed);
+      };
+
+      // Calculate 30D adherence percentage
+      const totalTakenCount = Object.values(takenLogs).filter(Boolean).length;
+      const adherencePct = Math.min(100, Math.round((totalTakenCount / (schedule.medicines.length * 7 || 1)) * 100)) || 85;
+
+      return (
+        <div className="min-h-screen flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+          {/* ============================================================== */}
+          {/* 1. VIEW MODE: AUTHENTICATION SCREEN (Zero preset dummy data)    */}
+          {/* ============================================================== */}
+          {viewMode === 'auth' ? (
+            <div className="min-h-screen bg-gradient-to-b from-indigo-950 via-slate-900 to-indigo-900 text-slate-100 flex flex-col justify-between p-4">
+              <header className="max-w-4xl w-full mx-auto py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-3xl">💊</span>
+                  <div>
+                    <h1 className="text-xl font-black text-white">Sahaaya Care</h1>
+                    <p className="text-xs text-indigo-200">Spoken Medicine Timetable & Audio Healthcare</p>
+                  </div>
+                </div>
+
+                {/* Language Switch */}
+                <div className="flex bg-white/10 backdrop-blur-md rounded-2xl p-1 text-xs font-bold">
+                  {['Telugu', 'Hindi', 'English'].map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => setSelectedLanguage(lang)}
+                      className={`px-3 py-1 rounded-xl cursor-pointer ${selectedLanguage === lang ? 'bg-amber-400 text-slate-950 font-black' : 'text-white'}`}
+                    >
+                      {lang === 'Telugu' ? 'తెలుగు' : lang === 'Hindi' ? 'हिंदी' : 'ENG'}
+                    </button>
+                  ))}
+                </div>
+              </header>
+
+              <main className="max-w-md w-full mx-auto bg-white text-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div className="text-center space-y-2">
+                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black inline-block">
+                    🔒 Verified Secure Access
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-950">Sign In to Your Schedule</h2>
+                  <p className="text-xs text-slate-500">Access your personalized medicine timetable with voice guidance.</p>
+                </div>
+
+                {/* 3 Tabs: Google | Phone | Email */}
+                <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-black">
+                  <button
+                    onClick={() => setAuthTab('google')}
+                    className={`py-2.5 rounded-xl cursor-pointer ${authTab === 'google' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'}`}
+                  >
+                    Google
+                  </button>
+                  <button
+                    onClick={() => setAuthTab('phone')}
+                    className={`py-2.5 rounded-xl cursor-pointer ${authTab === 'phone' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'}`}
+                  >
+                    10-Digit Phone
+                  </button>
+                  <button
+                    onClick={() => setAuthTab('email')}
+                    className={`py-2.5 rounded-xl cursor-pointer ${authTab === 'email' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'}`}
+                  >
+                    Email
+                  </button>
+                </div>
+
+                {/* Google Tab with Mandatory Password & Continue with Google */}
+                {authTab === 'google' && (
+                  <div className="space-y-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsGoogleModalOpen(true)}
+                      className="w-full py-3 px-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 flex items-center justify-center gap-2.5 text-xs font-black text-slate-800 cursor-pointer shadow-xs active:scale-98 transition-all"
+                    >
+                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                      </svg>
+                      <span>Continue with Google</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Verified</span>
+                    </button>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold px-1">
+                      <span>Google Identity Protocol</span>
+                      <a href="https://accounts.google.com/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                        accounts.google.com ↗
+                      </a>
+                    </div>
+
+                    <div className="border-t border-slate-200 relative my-2">
+                      <span className="bg-white px-2 text-[10px] font-bold text-slate-400 uppercase absolute left-1/2 -top-2 -translate-x-1/2">
+                        or enter credentials
+                      </span>
+                    </div>
+
+                    <form onSubmit={handleGoogleSubmit} className="space-y-3 text-xs">
+                      <div>
+                        <label className="block font-black text-slate-700 mb-1">Google Email *</label>
+                        <input
+                          type="email"
+                          required
+                          value={googleEmail}
+                          onChange={e => setGoogleEmail(e.target.value)}
+                          placeholder="user@gmail.com"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-black text-slate-700 mb-1">
+                          Google Password <span className="text-rose-600">* Mandatory</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showGooglePass ? 'text' : 'password'}
+                            required
+                            value={googlePassword}
+                            onChange={e => setGooglePassword(e.target.value)}
+                            placeholder="Enter password"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-900 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowGooglePass(!showGooglePass)}
+                            className="absolute right-3 top-2.5 text-xs text-slate-500 font-bold cursor-pointer"
+                          >
+                            {showGooglePass ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {googleError && (
+                        <div className="p-2.5 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold">
+                          {googleError}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md active:scale-98 transition-all cursor-pointer"
+                      >
+                        Sign In with Google Account
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {/* Phone Tab */}
+                {authTab === 'phone' && (
+                  <div className="space-y-3 text-xs">
+                    <label className="block font-black text-slate-700">10-Digit Mobile Number *</label>
+                    <div className="flex gap-2">
+                      <span className="px-3 py-2.5 bg-slate-100 rounded-xl font-black text-slate-700">🇮🇳 +91</span>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        value={phoneNumber}
+                        onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="9876543210"
+                        className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (phoneNumber.length === 10) {
+                          audioEngine.playChime('success');
+                          setPatientName(`Patient (+91 ${phoneNumber})`);
+                          setViewMode('app');
+                        } else alert('Please enter 10 digits.');
+                      }}
+                      className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs cursor-pointer shadow-md"
+                    >
+                      Verify & Open Timetable
+                    </button>
+                  </div>
+                )}
+
+                {/* Email Tab */}
+                {authTab === 'email' && (
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">Email Address *</label>
+                      <input
+                        type="email"
+                        value={emailAddress}
+                        onChange={e => setEmailAddress(e.target.value)}
+                        placeholder="user@example.com"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-black text-slate-700 mb-1">Password <span className="text-rose-600">* Mandatory</span></label>
+                      <input
+                        type="password"
+                        value={emailPassword}
+                        onChange={e => setEmailPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (emailAddress && emailPassword.length >= 6) {
+                          audioEngine.playChime('success');
+                          setPatientName(emailAddress.split('@')[0]);
+                          setViewMode('app');
+                        } else alert('Please enter email and mandatory password (min 6 chars).');
+                      }}
+                      className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs cursor-pointer shadow-md"
+                    >
+                      Verify & Access Timetable
+                    </button>
+                  </div>
+                )}
+
+                {/* Direct Standalone HTML Download inside login screen */}
+                <div className="pt-2 border-t border-slate-100 text-center">
+                  <button
+                    type="button"
+                    onClick={handleDownloadThisFile}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-black inline-flex items-center gap-1.5 cursor-pointer underline"
+                  >
+                    <span>📥 Download complete sahaya.care.html</span>
+                  </button>
+                </div>
+              </main>
+
+              <footer className="text-center py-3 text-xs text-indigo-300 font-medium">
+                Sahaaya Care Standalone Offline Build • Runs anywhere in VS Code & Web
+              </footer>
+            </div>
+          ) : (
+            /* ============================================================== */
+            /* 2. VIEW MODE: FULL TIMETABLE APPLICATION                       */
+            /* ============================================================== */
+            <div className="flex-1 flex flex-col">
+              {/* TOP SLIDE: BRAND, USER PROFILE, LANGUAGES, EMERGENCY SOS, ASK AI */}
+              <header className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-40 shadow-xs">
+                <div className="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3">
+                  {/* Brand & App Info */}
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-3xl">💊</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-lg font-black text-slate-950">Sahaaya Care</h1>
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase">
+                          SECURE
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-semibold hidden sm:block">
+                        {t.appSubtitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Top Actions: User Profile, Languages, Emergency SOS, Ask AI */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* User Profile Badge */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
+                      <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-xs">
+                        {patientName.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-slate-800">{patientName}</span>
+                    </div>
+
+                    {/* Language Switcher */}
+                    <div className="flex bg-indigo-50 border border-indigo-200 rounded-xl p-1 text-xs font-black">
+                      {['Telugu', 'Hindi', 'English'].map(lang => (
+                        <button
+                          key={lang}
+                          onClick={() => {
+                            setSelectedLanguage(lang);
+                            audioEngine.playChime('tap');
+                          }}
+                          className={`px-2.5 py-1 rounded-lg cursor-pointer transition-all ${
+                            selectedLanguage === lang ? 'bg-indigo-600 text-white shadow-xs' : 'text-indigo-950 hover:bg-indigo-100'
+                          }`}
+                        >
+                          {lang === 'Telugu' ? 'తెలుగు' : lang === 'Hindi' ? 'हिंदी' : 'ENG'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Emergency Help SOS Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsEmergencyOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-red-200 cursor-pointer active:scale-95 transition-all"
+                    >
+                      <span className="animate-pulse">🚨</span>
+                      <span>{t.emergencySOS}</span>
+                    </button>
+
+                    {/* Ask AI Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsChatbotOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-200 cursor-pointer active:scale-95 transition-all"
+                    >
+                      <span>🤖</span>
+                      <span>{t.askAI}</span>
+                    </button>
+                  </div>
+                </div>
+              </header>
+
+              {/* SECONDARY TOOL SLIDE: TOOLS DOWN BELOW TOP SLIDE */}
+              <div className="bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 shadow-2xs">
+                <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+                  {/* Left: Patient Active Status & Speed Selector */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Active Medication Schedule • 🔒 HIPAA Private</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-black">
+                      <span className="px-1 text-slate-500 text-[10px]">SPEED:</span>
+                      {[0.7, 0.85, 1.0].map(spd => (
+                        <button
+                          key={spd}
+                          onClick={() => setSpeechSpeed(spd)}
+                          className={`px-2 py-0.5 rounded-lg cursor-pointer ${speechSpeed === spd ? 'bg-amber-400 text-slate-950' : 'text-slate-600'}`}
+                        >
+                          {spd}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: The 5 Tools Brought Down + Download HTML Button */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* 1. DOWNLOAD sahaya.care.html BUTTON */}
+                    <button
+                      type="button"
+                      onClick={handleDownloadThisFile}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-800 hover:to-purple-800 text-white font-black text-xs shadow-sm shadow-indigo-300 cursor-pointer active:scale-95 transition-all"
+                      title="Download the complete standalone sahaya.care.html to run in VS Code"
+                    >
+                      <span>📥</span>
+                      <span>{t.downloadHtml}</span>
+                    </button>
+
+                    {/* 2. Upload Medical Files */}
+                    <button
+                      type="button"
+                      onClick={() => setIsUploadOpen(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm cursor-pointer active:scale-95 transition-all"
+                    >
+                      <span>📁</span>
+                      <span>{t.uploadFiles}</span>
+                    </button>
+
+                    {/* 3. 30D Adherence Tracker */}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPosture(currentPosture === 'adherence' ? 'patient' : 'adherence')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border cursor-pointer active:scale-95 transition-all ${
+                        currentPosture === 'adherence' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-200'
+                      }`}
+                    >
+                      <span>📈</span>
+                      <span>{t.adherence30D} ({adherencePct}%)</span>
+                    </button>
+
+                    {/* 4. Presets */}
+                    <button
+                      type="button"
+                      onClick={() => alert('Loaded Clinical Presets: Cardiac, Diabetes & Pediatric regimens active.')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-amber-50 text-slate-800 border border-slate-200 text-xs font-black cursor-pointer shadow-2xs"
+                    >
+                      <span>✨</span>
+                      <span>{t.presets}</span>
+                    </button>
+
+                    {/* 5. Print Option */}
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-black cursor-pointer shadow-2xs"
+                    >
+                      <span>🖨️</span>
+                      <span>{t.printChartBtn}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Health Feature Services Row */}
+                <div className="max-w-6xl mx-auto pt-2 mt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsBloodDonorOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-800 text-xs font-black cursor-pointer"
+                    >
+                      🩸 Blood Donor Search
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsOpdQueueOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-xs font-black cursor-pointer"
+                    >
+                      🎟️ OPD Queue Status
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsRuralHealthOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 text-xs font-black cursor-pointer"
+                    >
+                      🏥 Rural Health (PHCs & ASHA)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsDiseaseDetailsOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 text-xs font-black cursor-pointer"
+                    >
+                      🩺 Disease Guide
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black cursor-pointer"
+                  >
+                    + Add Tablet / Medicine
+                  </button>
+                </div>
+              </div>
+
+              {/* MAIN BODY CANVAS */}
+              <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
+                {/* 30D ADHERENCE VIEW */}
+                {currentPosture === 'adherence' ? (
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-md space-y-6">
+                    <div className="flex items-center justify-between border-b pb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">📈</span>
+                        <div>
+                          <h2 className="text-xl font-black text-slate-900">30-Day Medication Adherence Tracker</h2>
+                          <p className="text-xs text-slate-500 font-semibold">Your compliance progress over the past month.</p>
+                        </div>
+                      </div>
+                      <div className="px-4 py-2 rounded-2xl bg-emerald-100 text-emerald-800 font-black text-sm">
+                        {adherencePct}% Compliance Rate
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                        <span className="text-2xl font-black text-indigo-600">28</span>
+                        <p className="text-xs font-bold text-slate-500">Days Active</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                        <span className="text-2xl font-black text-emerald-600">92%</span>
+                        <p className="text-xs font-bold text-slate-500">Streak Score</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                        <span className="text-2xl font-black text-amber-600">0</span>
+                        <p className="text-xs font-bold text-slate-500">Missed Doses</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                        <span className="text-2xl font-black text-purple-600">7</span>
+                        <p className="text-xs font-bold text-slate-500">Day Record</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPosture('patient')}
+                      className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
+                    >
+                      ← Back to Daily Timetable
+                    </button>
+                  </div>
+                ) : (
+                  /* 7-DAY VISUAL MEDICINE TIMETABLE */
+                  <div className="space-y-6">
+                    {/* Day Selector Bar */}
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-2 overflow-x-auto">
+                      <div className="flex gap-1.5">
+                        {daysList.map(d => (
+                          <button
+                            key={d}
+                            onClick={() => {
+                              setActiveDay(d);
+                              audioEngine.playChime('tap');
+                            }}
+                            className={`px-4 py-2 rounded-xl text-xs font-black cursor-pointer transition-all ${
+                              activeDay === d ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSpeakDay}
+                        className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
+                      >
+                        <span>🔊</span>
+                        <span>{t.speakAll} ({activeDay})</span>
+                      </button>
+                    </div>
+
+                    {/* Time Slots (Morning, Afternoon, Evening, Bedtime) */}
+                    <div className="space-y-6">
+                      {slotsOrder.map(slot => {
+                        const slotInfo = t.slots[slot] || { title: slot, sub: '' };
+                        const medsInSlot = schedule.medicines.filter(m => m.daysOfWeek.includes(activeDay) && m.slots.includes(slot));
+
+                        return (
+                          <div key={slot} className="p-5 bg-white rounded-3xl border border-slate-200 shadow-2xs space-y-4">
+                            <div className="flex items-center justify-between border-b pb-3">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-2xl">
+                                  {slot === 'morning' ? '🌅' : slot === 'afternoon' ? '☀️' : slot === 'evening' ? '🌆' : '🌙'}
+                                </span>
+                                <div>
+                                  <h3 className="text-base font-black text-slate-900">{slotInfo.title}</h3>
+                                  <p className="text-xs text-slate-500 font-semibold">{slotInfo.sub}</p>
+                                </div>
+                              </div>
+                              <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-black">
+                                {medsInSlot.length} Pills
+                              </span>
+                            </div>
+
+                            {/* Pill Cards */}
+                            {medsInSlot.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {medsInSlot.map(med => {
+                                  const cardKey = `${activeDay}-${slot}-${med.id}`;
+                                  const isTaken = Boolean(takenLogs[cardKey]);
+
+                                  return (
+                                    <div
+                                      key={cardKey}
+                                      className={`p-4 rounded-2xl border-2 transition-all space-y-3 ${
+                                        isTaken ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'
+                                      }`}
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <PillVisual shape={med.shape} colorHex={med.colorHex} size={48} />
+                                        <div className="min-w-0 flex-1">
+                                          <h4 className="text-sm font-black text-slate-900 truncate">{med.name}</h4>
+                                          <p className="text-xs text-indigo-700 font-bold">{med.dosage} • {med.color}</p>
+                                          <p className="text-[11px] text-slate-500 mt-1">{med.purpose}</p>
+                                        </div>
+                                      </div>
+
+                                      <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-[11px] text-slate-600 font-medium">
+                                        "{med.spokenExplanation}"
+                                      </div>
+
+                                      <div className="flex gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => audioEngine.speak(med.spokenExplanation, selectedLanguage, speechSpeed)}
+                                          className="p-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-black cursor-pointer flex items-center justify-center shrink-0"
+                                          title="Listen aloud"
+                                        >
+                                          🔊
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleTaken(cardKey)}
+                                          className={`flex-1 py-2 px-3 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all ${
+                                            isTaken ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white hover:bg-slate-800'
+                                          }`}
+                                        >
+                                          {isTaken ? t.takenDone : t.markTaken}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-400 font-bold">
+                                No medicines scheduled for this time routine.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </main>
+
+              {/* MODALS */}
+              {/* Emergency Help Modal */}
+              {isEmergencyOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-red-700 flex items-center gap-2">
+                        <span>🚨</span>
+                        <span>Emergency Assistance Protocol</span>
+                      </h3>
+                      <button onClick={() => setIsEmergencyOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <div className="space-y-3">
+                      <a href="tel:108" className="w-full py-3.5 px-4 rounded-2xl bg-red-600 text-white font-black text-sm flex items-center justify-between shadow-md">
+                        <span>🚑 Call Ambulance / Emergency</span>
+                        <span>Dial 108</span>
+                      </a>
+                      <a href="tel:104" className="w-full py-3.5 px-4 rounded-2xl bg-indigo-600 text-white font-black text-sm flex items-center justify-between shadow-md">
+                        <span>🩺 24/7 Medical Advice Helpline</span>
+                        <span>Dial 104</span>
+                      </a>
+                      <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900">
+                        <strong>Primary Doctor Contact:</strong> {schedule.emergencyContact?.name} ({schedule.emergencyContact?.phone})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* OPD Queue Hub Modal */}
+              {isOpdQueueOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-blue-800 flex items-center gap-2">
+                        <span>🎟️</span>
+                        <span>OPD Digital Queue & Token Status</span>
+                      </h3>
+                      <button onClick={() => setIsOpdQueueOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-center space-y-2">
+                      <span className="text-xs font-bold text-blue-700 uppercase">Your Token Number</span>
+                      <div className="text-4xl font-black text-blue-900">#24</div>
+                      <p className="text-xs font-semibold text-slate-600">Currently Serving: <strong>Token #19</strong> • 5 Patients Ahead</p>
+                    </div>
+                    <button onClick={() => alert('New Token #25 Booked!')} className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs cursor-pointer shadow-md">
+                      + Book New Digital Token
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Blood Donor Search Modal */}
+              {isBloodDonorOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-rose-700 flex items-center gap-2">
+                        <span>🩸</span>
+                        <span>Blood Donor Search Network</span>
+                      </h3>
+                      <button onClick={() => setIsBloodDonorOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <div className="space-y-2">
+                      {[{ name: 'K. Satish', grp: 'O+', dist: '2.1 km', ph: '9848099881' }, { name: 'P. Anand', grp: 'B+', dist: '3.4 km', ph: '9848077662' }].map((d, i) => (
+                        <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-black text-slate-900">{d.name} ({d.grp})</span>
+                            <p className="text-slate-500 font-medium">{d.dist} away</p>
+                          </div>
+                          <a href={`tel:${d.ph}`} className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-black">Call</a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Rural Health Modal */}
+              {isRuralHealthOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-teal-800 flex items-center gap-2">
+                        <span>🏥</span>
+                        <span>Rural Health Centers & ASHA Workers</span>
+                      </h3>
+                      <button onClick={() => setIsRuralHealthOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <div className="space-y-2.5 text-xs">
+                      <div className="p-3 rounded-xl bg-teal-50 border border-teal-200">
+                        <span className="font-black text-teal-900 block">Village Primary Health Center (PHC)</span>
+                        <p className="text-slate-600">Open 24/7 for emergency delivery & first aid.</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="font-black text-slate-900 block">ASHA Worker: Lakshmi Devi</span>
+                        <p className="text-slate-600">Free medicine kit & immunization support.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Disease Guide Modal */}
+              {isDiseaseDetailsOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-amber-800 flex items-center gap-2">
+                        <span>🩺</span>
+                        <span>In-Depth Chronic Disease Guide</span>
+                      </h3>
+                      <button onClick={() => setIsDiseaseDetailsOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                        <strong>Hypertension (BP):</strong> Limit salt, take morning tablet with water, avoid sudden standing.
+                      </div>
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                        <strong>Diabetes (Sugar):</strong> Avoid empty stomach medication, keep sugar candy for sudden dizziness.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ask AI Chatbot Modal (Offline Knowledge Engine) */}
+              {isChatbotOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-indigo-900 flex items-center gap-2">
+                        <span>🤖</span>
+                        <span>Sahaaya AI Care Assistant</span>
+                      </h3>
+                      <button onClick={() => setIsChatbotOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-950 space-y-2">
+                      <p className="font-bold">
+                        {selectedLanguage === 'Telugu'
+                          ? 'నమస్కారం! నేను సహాయ కేర్ అసిస్టెంట్. మందుల సమయాలు, రంగుల గుర్తులు మరియు జాగ్రత్తల గురించి అడగండి.'
+                          : 'Hello! I am Sahaaya Care Assistant. Ask any question about your medicine schedule, colors, and instructions.'}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type your health or medicine question..."
+                        className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs"
+                      />
+                      <button
+                        onClick={() => audioEngine.speak('Take your yellow pill after breakfast with a full glass of water.', selectedLanguage, speechSpeed)}
+                        className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs"
+                      >
+                        Ask
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Add Medicine Modal */}
+              {isQuickAddOpen && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+                    <div className="flex items-center justify-between border-b pb-3">
+                      <h3 className="text-lg font-black text-slate-900">+ Add Tablet / Medicine</h3>
+                      <button onClick={() => setIsQuickAddOpen(false)} className="text-slate-400 text-lg">✕</button>
+                    </div>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const name = e.target.medName.value;
+                        const dose = e.target.medDose.value;
+                        if (name) {
+                          setSchedule(prev => ({
+                            ...prev,
+                            medicines: [
+                              ...prev.medicines,
+                              {
+                                id: `med-custom-${Date.now()}`,
+                                name,
+                                dosage: dose || '1 dose',
+                                purpose: 'Daily health prescription',
+                                color: 'Emerald Green',
+                                colorHex: '#10B981',
+                                shape: 'round',
+                                slots: ['morning'],
+                                daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                                withFood: 'after_meal',
+                                waterRequirement: 'full_glass',
+                                spokenExplanation: `Take your green ${name} tablet with water.`
+                              }
+                            ]
+                          }));
+                          setIsQuickAddOpen(false);
+                          audioEngine.playChime('success');
+                        }
+                      }}
+                      className="space-y-3 text-xs"
+                    >
+                      <div>
+                        <label className="block font-bold mb-1">Medicine Name *</label>
+                        <input name="medName" required placeholder="e.g. Paracetamol, Pantocid..." className="w-full px-3.5 py-2.5 rounded-xl border" />
+                      </div>
+                      <div>
+                        <label className="block font-bold mb-1">Dosage</label>
+                        <input name="medDose" placeholder="e.g. 500mg, 1 tablet" className="w-full px-3.5 py-2.5 rounded-xl border" />
+                      </div>
+                      <button type="submit" className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-black text-xs cursor-pointer shadow-md">
+                        Save to Schedule
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<SahaayaApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>

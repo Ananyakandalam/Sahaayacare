@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#312e81" />
+    </linearGradient>
+    <linearGradient id="pillGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="pillGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#grad)" />
+  <circle cx="256" cy="256" r="190" fill="#ffffff" opacity="0.08" />
+  <!-- Pill graphic -->
+  <g transform="translate(146, 126) rotate(-35 110 130)">
+    <!-- Pill body left -->
+    <path d="M 40 40 A 50 50 0 0 0 40 180 L 110 180 L 110 40 Z" fill="url(#pillGrad1)" />
+    <!-- Pill body right -->
+    <path d="M 110 40 L 180 40 A 50 50 0 0 1 180 180 L 110 180 Z" fill="url(#pillGrad2)" />
+    <!-- Pill dividing groove -->
+    <line x1="110" y1="36" x2="110" y2="184" stroke="#ffffff" stroke-width="6" opacity="0.8" />
+    <!-- Gloss reflection -->
+    <path d="M 50 60 A 30 30 0 0 1 170 60" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.5" />
+  </g>
+  <!-- Sound waves for Spoken Audio Care -->
+  <path d="M 330 180 A 80 80 0 0 1 330 332" fill="none" stroke="#fbbf24" stroke-width="16" stroke-linecap="round" />
+  <path d="M 370 140 A 130 130 0 0 1 370 372" fill="none" stroke="#38bdf8" stroke-width="14" stroke-linecap="round" opacity="0.9" />
+  <!-- Heart cross badge -->
+  <circle cx="160" cy="350" r="44" fill="#10b981" />
+  <path d="M 160 330 L 160 370 M 140 350 L 180 350" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
+</svg>

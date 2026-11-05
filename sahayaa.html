@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4338ca" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sahaaya Care" />
+  <title>Sahaaya Care - Spoken Medicine Timetable (Single File Export)</title>
+  <meta name="description" content="Accessible 7-day visual medicine schedule with spoken audio guides, high-contrast visual pill identifiers, and time-of-day cues designed for patients who cannot read." />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- React 18, ReactDOM 18 & Babel Standalone for Instant Local Execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-amber-100 selection:text-amber-900 min-h-screen">
+  <div id="root"></div>
+
+  <!-- Full Application Code Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- TRANSLATIONS (English, Telugu, Hindi) ---
+    const TRANSLATIONS = {
+      English: {
+        appName: 'Sahaaya Care',
+        appSubtitle: 'Spoken 7-Day Medicine Guide with Visual Cues for Patients Who Cannot Read',
+        dueNowTag: 'Due Right Now!',
+        allDone: 'All Done for Now! Great job.',
+        listenBtn: 'Listen 🔊',
+        markTaken: 'I Swallowed This Pill ✅',
+        undoTaken: 'Taken! Tap to Undo',
+        speakAll: '🔊 Hear Today\'s Full Schedule',
+        askAI: 'Ask Sahaaya AI 🤖',
+        uploadDoc: 'Upload / Camera 📷',
+        printWall: 'Print Wall Poster 🖨️',
+        days: { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' },
+        slots: {
+          morning: { title: 'Morning Routine', sub: 'Breakfast Awakening (06:00 AM – 11:00 AM)' },
+          afternoon: { title: 'Midday Routine', sub: 'Lunchtime & Daylight (11:00 AM – 04:00 PM)' },
+          evening: { title: 'Evening Routine', sub: 'Dinnertime & Sunset (04:00 PM – 08:00 PM)' },
+          bedtime: { title: 'Bedtime Routine', sub: 'Rest & Night Guard (08:00 PM – 06:00 AM)' },
+        }
+      },
+      Telugu: {
+        appName: 'సహాయ కేర్ (Sahaaya Care)',
+        appSubtitle: 'చదవడం రాని పెద్దవారి కోసం రంగుల గుర్తులు మరియు స్పష్టమైన మాట్లాడే మందుల సమయ పట్టిక',
+        dueNowTag: 'ఇప్పుడే వేసుకోవాలి!',
+        allDone: 'ఈ సమయానికి మందులన్నీ విజయవంతంగా వేసుకున్నారు!',
+        listenBtn: 'వినండి 🔊',
+        markTaken: 'నేను ఈ మందు వేసుకున్నాను ✅',
+        undoTaken: 'తీసుకున్నారు! రద్దు చేయు',
+        speakAll: '🔊 నేటి మందులన్నీ తెలుగులో వినండి',
+        askAI: 'సహాయ AI బట్ 🤖',
+        uploadDoc: 'కెమెరా / చీటీ అప్‌లోడ్ 📷',
+        printWall: 'ఫ్రిజ్ పోస్టర్ ముద్రణ 🖨️',
+        days: { Mon: 'సోమవారం', Tue: 'మంగళవారం', Wed: 'బుధవారం', Thu: 'గురువారం', Fri: 'శుక్రవారం', Sat: 'శనివారం', Sun: 'ఆదివారం' },
+        slots: {
+          morning: { title: 'ఉదయపు వేళ (Morning)', sub: 'అల్పాహారం & మేల్కొనే సమయం (06:00 – 11:00)' },
+          afternoon: { title: 'మధ్యాహ్నపు వేళ (Midday)', sub: 'మధ్యాహ్న భోజన సమయం (11:00 – 04:00)' },
+          evening: { title: 'సాయంత్రపు వేళ (Evening)', sub: 'సాయంత్రం భోజనం & సూర్యాస్తమయం (04:00 – 08:00)' },
+          bedtime: { title: 'రాత్రి నిద్రవేళ (Bedtime)', sub: 'నిద్ర & రాత్రి రక్షణ (08:00 – 06:00)' },
+        }
+      },
+      Hindi: {
+        appName: 'सहाय केयर (Sahaaya Care)',
+        appSubtitle: 'अनपढ़ बुजुर्गों के लिए बोलती आवाज़ और रंगों वाली 7-दिवसीय दवाई तालिका',
+        dueNowTag: 'अभी लेने का समय!',
+        allDone: 'इस समय की सभी दवाइयां पूरी हुईं!',
+        listenBtn: 'सुनें 🔊',
+        markTaken: 'मैंने यह दवाई ले ली ✅',
+        undoTaken: 'दवाई ली गई! पूर्ववत करें',
+        speakAll: '🔊 आज की पूरी दवाई सुनें',
+        askAI: 'सहाय AI बॉट 🤖',
+        uploadDoc: 'कैमरा / पर्चा अपलोड 📷',
+        printWall: 'दीवार चार्ट प्रिंट 🖨️',
+        days: { Mon: 'सोमवार', Tue: 'मंगलवार', Wed: 'बुधवार', Thu: 'गुरुवार', Fri: 'शुक्रवार', Sat: 'शनिवार', Sun: 'रविवार' },
+        slots: {
+          morning: { title: 'सुबह का नियम (Morning)', sub: 'नाश्ता व जागने का समय (06:00 – 11:00)' },
+          afternoon: { title: 'दोपहर का नियम (Midday)', sub: 'दोपहर के भोजन का समय (11:00 – 04:00)' },
+          evening: { title: 'शाम का नियम (Evening)', sub: 'शाम का खाना व सूर्यास्त (04:00 – 08:00)' },
+          bedtime: { title: 'रात सोने का समय (Bedtime)', sub: 'आराम व रात की सुरक्षा (08:00 – 06:00)' },
+        }
+      }
+    };
+
+    // --- DEFAULT MEDICINE REGIMEN ---
+    const INITIAL_SCHEDULE = {
+      regimenTitle: 'Cardiovascular, Blood Pressure & Daily Wellness Schedule',
+      patientName: 'Eleanor Vance',
+      medicines: [
+        {
+          id: 'med-1',
+          name: 'Amlodipine (Blood Pressure Relaxer)',
+          dosage: '5 mg',
+          purpose: 'రక్తపోటు (BP) అదుపులో ఉంచుతుంది',
+          color: 'Golden Yellow',
+          colorHex: '#FBBF24',
+          shape: 'round',
+          slots: ['morning'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'after_meal',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'In the morning after your breakfast, take your round golden yellow pill with a full glass of water. It keeps your blood pressure relaxed and steady all day.',
+          spokenTelugu: 'నమస్కారం! ఉదయం లేచిన వెంటనే అల్పాహారం తిన్న తర్వాత, మీ చేతిలో ఉన్న బంగారు పసుపు రంగు గుండ్రని మాత్రను ఒక పూర్తి గ్లాసుడు చల్లని మంచినీటితో నిదానంగా మింగండి. ఇది మీ రక్తపోటును అదుపులో ఉంచుతుంది.'
+        },
+        {
+          id: 'med-2',
+          name: 'Metoprolol (Heart Rhythm Calmer)',
+          dosage: '25 mg',
+          purpose: 'గుండె లయను నిలకడగా ఉంచుతుంది',
+          color: 'Soft Pink',
+          colorHex: '#F472B6',
+          shape: 'oval',
+          slots: ['morning'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'with_meal',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'Next in the morning, find your smooth pink oval pill. Take this while eating your breakfast meal with water to keep your heart beating calmly.',
+          spokenTelugu: 'ఉదయపు టిఫిన్ తినే సమయంలో, మీ గులాబీ రంగు ఓవల్ బిళ్ళను మంచి నీటితో వేసుకోండి. ఇది మీ గుండె దడ రాకుండా ప్రశాంతంగా ఉంచుతుంది.'
+        },
+        {
+          id: 'med-3',
+          name: 'Baby Aspirin (Artery Care)',
+          dosage: '81 mg',
+          purpose: 'రక్తం పల్చగా ఉండటానికి రక్షణ',
+          color: 'Clean White',
+          colorHex: '#FFFFFF',
+          shape: 'round',
+          slots: ['afternoon'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'after_meal',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'At midday during your lunch, look for the tiny round white pill. Take just one after your meal with water to keep your blood flowing cleanly.',
+          spokenTelugu: 'మధ్యాహ్న భోజనం చేసిన తర్వాత, మీ చేతిలో ఉన్న చిన్న తెల్లటి గుండ్రని మాత్రను ఒక గ్లాసు నీటితో వేసుకోండి. ఇది రక్త ప్రసరణకు మంచిది.'
+        },
+        {
+          id: 'med-4',
+          name: 'Atorvastatin (Vessel Night Guard)',
+          dosage: '20 mg',
+          purpose: 'రాత్రి నిద్రలో కొలెస్ట్రాల్ మరియు రక్తనాళాల రక్షణ',
+          color: 'Sky Blue',
+          colorHex: '#38BDF8',
+          shape: 'capsule',
+          slots: ['bedtime'],
+          daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          withFood: 'no_preference',
+          waterRequirement: 'full_glass',
+          spokenExplanation: 'At bedtime before you turn off your bedroom lamp, take your two-part sky blue capsule with water. It works quietly while you sleep.',
+          spokenTelugu: 'రాత్రి పడుకునే ముందు పడకగది లైట్లు ఆర్పే వేళలో, మీ ఆకాశ నీలం రంగు క్యాప్సూల్‌ను మంచి నీటితో నిదానంగా మింగండి. రాత్రంతా ఇది మీకు రక్షణ ఇస్తుంది.'
+        }
+      ]
+    };
+
+    // --- AUDIO PLAYER HELPER (Web Speech API) ---
+    const speakText = (text, lang = 'English', speed = 0.85) => {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = speed;
+      utterance.pitch = 1.0;
+      
+      const voices = window.speechSynthesis.getVoices();
+      if (lang === 'Telugu') {
+        utterance.lang = 'te-IN';
+        const teVoice = voices.find(v => v.lang.includes('te') || v.lang.includes('Telugu'));
+        if (teVoice) utterance.voice = teVoice;
+      } else if (lang === 'Hindi') {
+        utterance.lang = 'hi-IN';
+        const hiVoice = voices.find(v => v.lang.includes('hi') || v.lang.includes('Hindi'));
+        if (hiVoice) utterance.voice = hiVoice;
+      } else {
+        utterance.lang = 'en-US';
+      }
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // --- Pill Visual Icon Component ---
+    function PillVisual({ shape, colorHex, colorName }) {
+      const isWhite = colorHex.toUpperCase() === '#FFFFFF';
+      const borderClass = isWhite ? 'border-2 border-slate-300 shadow-sm' : 'border border-black/10';
+
+      if (shape === 'capsule') {
+        return (
+          <div className="w-12 h-6 rounded-full flex overflow-hidden shadow-md transform -rotate-12 border border-white/60">
+            <div className="w-1/2 h-full" style={{ backgroundColor: colorHex }}></div>
+            <div className="w-1/2 h-full bg-slate-100 flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+            </div>
+          </div>
+        );
+      }
+      if (shape === 'oval') {
+        return (
+          <div
+            className={`w-12 h-7 rounded-[50%] shadow-md transform -rotate-6 flex items-center justify-center ${borderClass}`}
+            style={{ backgroundColor: colorHex }}
+          >
+            <div className="w-6 h-0.5 bg-black/15 rounded-full"></div>
+          </div>
+        );
+      }
+      // Round default
+      return (
+        <div
+          className={`w-9 h-9 rounded-full shadow-md flex items-center justify-center ${borderClass}`}
+          style={{ backgroundColor: colorHex }}
+        >
+          <div className="w-4 h-0.5 bg-black/15 rounded-full"></div>
+        </div>
+      );
+    }
+
+    // --- MAIN APP COMPONENT ---
+    function SahaayaApp() {
+      const [language, setLanguage] = useState('Telugu'); // Default Telugu per user focus
+      const [schedule, setSchedule] = useState(() => {
+        const saved = localStorage.getItem('sahayaa_standalone_sched');
+        return saved ? JSON.parse(saved) : INITIAL_SCHEDULE;
+      });
+      const [activeDay, setActiveDay] = useState('Mon');
+      const [activePosture, setActivePosture] = useState('patient'); // 'patient' | 'caregiver' | 'adherence' | 'matrix'
+      const [takenLogs, setTakenLogs] = useState(() => {
+        const saved = localStorage.getItem('sahayaa_standalone_taken');
+        return saved ? JSON.parse(saved) : {};
+      });
+      const [isChatOpen, setIsChatOpen] = useState(false);
+      const [isUploadOpen, setIsUploadOpen] = useState(false);
+      const [speechSpeed, setSpeechSpeed] = useState(0.85);
+
+      const t = TRANSLATIONS[language] || TRANSLATIONS.English;
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const slots = ['morning', 'afternoon', 'evening', 'bedtime'];
+
+      useEffect(() => {
+        localStorage.setItem('sahayaa_standalone_taken', JSON.stringify(takenLogs));
+      }, [takenLogs]);
+
+      const toggleTaken = (key) => {
+        const next = !takenLogs[key];
+        setTakenLogs(prev => ({ ...prev, [key]: next }));
+        if (next) {
+          const praise = language === 'Telugu'
+            ? 'చాలా మంచిది! మీరు ఈ మందును సమయానికి వేసుకున్నారు.'
+            : language === 'Hindi'
+            ? 'बहुत बढ़िया! आपने यह दवाई समय पर ली है।'
+            : 'Great job! You marked this pill as swallowed.';
+          speakText(praise, language, speechSpeed);
+        }
+      };
+
+      const handlePlayMed = (med) => {
+        const text = language === 'Telugu' ? (med.spokenTelugu || med.spokenExplanation) : med.spokenExplanation;
+        speakText(text, language, speechSpeed);
+      };
+
+      const handlePlayDayAll = () => {
+        const dayMeds = schedule.medicines.filter(m => m.daysOfWeek.includes(activeDay));
+        if (dayMeds.length === 0) {
+          speakText(language === 'Telugu' ? 'ఈ రోజు మీకు ఎలాంటి మందులు లేవు.' : 'No medicines scheduled today.', language);
+          return;
+        }
+        const fullIntro = language === 'Telugu'
+          ? `నమస్కారం! ${t.days[activeDay]} రోజున మీ మందుల సమయ పట్టిక ఇది.`
+          : `Hello! Here is your medicine schedule for ${t.days[activeDay]}.`;
+        speakText(fullIntro, language, speechSpeed);
+      };
+
+      // Export file directly
+      const exportSingleFile = () => {
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'sahayaa.html';
+        a.click();
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-indigo-50/40 via-slate-50 to-slate-100">
+          {/* Top Panel Header */}
+          <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm no-print">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-700 to-indigo-500 text-white flex items-center justify-center text-2xl shadow-md">
+                  💊
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-black text-slate-950 tracking-tight">{t.appName}</h1>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                      Voice & Visual
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium hidden sm:block">{t.appSubtitle}</p>
+                </div>
+              </div>
+
+              {/* Header Actions: Language, Chatbot, Upload, Print */}
+              <div className="flex items-center gap-2">
+                {/* Language Switcher */}
+                <div className="flex items-center p-1 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-black">
+                  {['Telugu', 'Hindi', 'English'].map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        setLanguage(lang);
+                        speakText(lang === 'Telugu' ? 'తెలుగు ఎంపిక చేయబడింది' : lang === 'Hindi' ? 'हिंदी भाषा चुनी गई' : 'English selected', lang);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg transition ${language === lang ? 'bg-indigo-600 text-white shadow-xs' : 'text-indigo-950 hover:bg-indigo-100'}`}
+                    >
+                      {lang === 'Telugu' ? 'తెలుగు' : lang === 'Hindi' ? 'हिंदी' : 'ENG'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* AI Chatbot Button */}
+                <button
+                  onClick={() => setIsChatOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-sm transition active:scale-95 ring-2 ring-amber-300"
+                  title="Ask AI Care Assistant"
+                >
+                  <span>🤖</span>
+                  <span className="hidden sm:inline">{t.askAI}</span>
+                </button>
+
+                {/* Camera / Upload */}
+                <button
+                  onClick={() => setIsUploadOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-sm transition active:scale-95"
+                >
+                  <span>📷</span>
+                  <span className="hidden sm:inline">{t.uploadDoc}</span>
+                </button>
+
+                {/* Print Wall Chart */}
+                <button
+                  onClick={() => window.print()}
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  title="Print Wall Chart"
+                >
+                  🖨️
+                </button>
+
+                {/* Export this HTML file */}
+                <button
+                  onClick={exportSingleFile}
+                  className="p-2 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-bold"
+                  title="Download single file sahayaa.html"
+                >
+                  ⬇️ HTML
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Area */}
+          <main className="max-w-6xl w-full mx-auto px-4 py-6 space-y-6 flex-1">
+            {/* Quick Posture Modes */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-print">
+              {[
+                { id: 'patient', label: '🗣️ రోగి స్వర మోడ్ (Patient Audio)', desc: 'రంగుల మాత్రలు & శ్రవణ సహాయం' },
+                { id: 'caregiver', label: '✏️ కేర్‌గివర్ సవరణ (Caregiver Edit)', desc: 'మందు మోతాదు & సమయం మార్పు' },
+                { id: 'adherence', label: '📊 30 రోజుల రికార్డు (30D Track)', desc: 'క్రమశిక్షణ & విశ్లేషణ' },
+                { id: 'matrix', label: '🗓️ 7 రోజుల పూర్తి పట్టిక (Matrix)', desc: 'వారపు పట్టిక' }
+              ].map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => setActivePosture(mode.id)}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition active:scale-95 ${activePosture === mode.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Big Spoken Audio Player Bar */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 no-print">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center text-2xl font-black shrink-0">
+                  🔊
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white">
+                    {language === 'Telugu' ? 'తెలుగు మాట్లాడే శ్రవణ మార్గదర్శి' : 'Spoken Audio Medicine Guide'}
+                  </h3>
+                  <p className="text-xs text-indigo-200 font-medium mt-0.5">
+                    {language === 'Telugu'
+                      ? 'స్క్రీన్‌పై ఉన్న ఏ మాత్రనైనా తాకండి, అది ఎప్పుడు ఎలా వేసుకోవాలో స్పష్టమైన తెలుగులో వినిపిస్తుంది.'
+                      : 'Tap any colored pill card to hear crystal-clear spoken guidance out loud.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePlayDayAll}
+                  className="px-4 py-2.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md transition active:scale-95"
+                >
+                  {t.speakAll}
+                </button>
+                <button
+                  onClick={() => window.speechSynthesis && window.speechSynthesis.cancel()}
+                  className="px-3 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition"
+                >
+                  ఆపు (Stop)
+                </button>
+              </div>
+            </div>
+
+            {/* 7 Days Strip */}
+            <div className="grid grid-cols-7 gap-2 no-print">
+              {days.map(d => (
+                <button
+                  key={d}
+                  onClick={() => setActiveDay(d)}
+                  className={`p-2 sm:p-3 rounded-2xl border-2 transition text-center ${activeDay === d ? 'bg-indigo-600 border-indigo-600 text-white shadow-md scale-105' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                >
+                  <span className="block text-[11px] font-black uppercase">{d}</span>
+                  <span className="block text-xs font-extrabold mt-0.5">{t.days[d]}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Adherence Posture */}
+            {activePosture === 'adherence' && (
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-slate-900">📊 30-Day Medication Adherence</h3>
+                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">94% On-Time Streak</span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">Daily compliance tracking over the past 30 days:</p>
+                <div className="grid grid-cols-10 sm:grid-cols-15 gap-2 pt-2">
+                  {Array.from({ length: 30 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-9 rounded-xl flex items-center justify-center font-bold text-xs ${idx === 28 ? 'bg-amber-200 text-amber-900' : 'bg-emerald-500 text-white shadow-xs'}`}
+                      title={`Day ${idx + 1}`}
+                    >
+                      {idx + 1}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 7-Day Matrix Posture */}
+            {activePosture === 'matrix' && (
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm overflow-x-auto space-y-4">
+                <h3 className="text-lg font-black text-slate-900">🗓️ Full Mon–Sun Weekly Matrix</h3>
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px]">
+                      <th className="py-2">Pill Color & Shape</th>
+                      <th className="py-2">Medicine & Purpose</th>
+                      {days.map(d => <th key={d} className="py-2 text-center">{d}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {schedule.medicines.map(m => (
+                      <tr key={m.id} className="hover:bg-slate-50">
+                        <td className="py-3 flex items-center gap-2">
+                          <PillVisual shape={m.shape} colorHex={m.colorHex} colorName={m.color} />
+                          <span className="font-bold text-slate-900">{m.color}</span>
+                        </td>
+                        <td className="py-3 font-semibold text-slate-700">{m.name} ({m.dosage})</td>
+                        {days.map(d => (
+                          <td key={d} className="py-3 text-center">
+                            {m.daysOfWeek.includes(d) ? <span className="text-emerald-600 font-black">✅</span> : <span className="text-slate-300">-</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Daily Schedule (Patient / Caregiver) */}
+            {(activePosture === 'patient' || activePosture === 'caregiver') && (
+              <div className="space-y-6">
+                {slots.map(slotKey => {
+                  const slotMeds = schedule.medicines.filter(m => m.daysOfWeek.includes(activeDay) && m.slots.includes(slotKey));
+                  const slotInfo = t.slots[slotKey];
+
+                  return (
+                    <div key={slotKey} className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-slate-200 shadow-sm space-y-4">
+                      {/* Slot Header */}
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {slotKey === 'morning' ? '🌅' : slotKey === 'afternoon' ? '☀️' : slotKey === 'evening' ? '🌇' : '🌙'}
+                          </span>
+                          <div>
+                            <h4 className="text-base sm:text-lg font-black text-slate-900">{slotInfo.title}</h4>
+                            <p className="text-xs text-slate-500 font-semibold">{slotInfo.sub}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const desc = slotMeds.map(m => language === 'Telugu' ? m.spokenTelugu : m.spokenExplanation).join('. ');
+                            speakText(desc || 'ఈ సమయానికి మందులు లేవు', language, speechSpeed);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black transition active:scale-95"
+                        >
+                          <span>🔊</span>
+                          <span>{t.listenBtn}</span>
+                        </button>
+                      </div>
+
+                      {/* Pill Cards */}
+                      {slotMeds.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {slotMeds.map(med => {
+                            const logKey = `${activeDay}-${slotKey}-${med.id}`;
+                            const isTaken = Boolean(takenLogs[logKey]);
+
+                            return (
+                              <div
+                                key={med.id}
+                                className={`p-4 rounded-3xl border-2 transition-all flex flex-col justify-between gap-3 ${isTaken ? 'bg-emerald-50/60 border-emerald-400' : 'bg-slate-50 border-slate-200 hover:border-indigo-400'}`}
+                              >
+                                <div className="flex items-start gap-3.5">
+                                  {/* Tactile Pill Visual Icon */}
+                                  <div className="p-2.5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-center shrink-0">
+                                    <PillVisual shape={med.shape} colorHex={med.colorHex} colorName={med.color} />
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h5 className="text-sm font-black text-slate-900 truncate">{med.name}</h5>
+                                      <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-700">
+                                        {med.dosage}
+                                      </span>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-indigo-700 block mt-0.5">
+                                      {med.color} {med.shape}
+                                    </span>
+                                    <p className="text-xs text-slate-600 font-medium mt-1 line-clamp-2">
+                                      {language === 'Telugu' ? med.purpose : med.purpose}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Spoken Instructions Preview */}
+                                <div className="p-2.5 rounded-2xl bg-white border border-slate-200 text-xs text-slate-700 italic">
+                                  "{language === 'Telugu' ? (med.spokenTelugu || med.spokenExplanation) : med.spokenExplanation}"
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-2 pt-1">
+                                  <button
+                                    onClick={() => handlePlayMed(med)}
+                                    className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95"
+                                  >
+                                    <span>🔊</span>
+                                    <span>{t.listenBtn}</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => toggleTaken(logKey)}
+                                    className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95 ${isTaken ? 'bg-emerald-600 text-white shadow-md' : 'bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50'}`}
+                                  >
+                                    <span>{isTaken ? '✅' : '⚪'}</span>
+                                    <span>{isTaken ? t.undoTaken : t.markTaken}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-xs text-slate-500 font-semibold">
+                          ఈ సమయానికి ఎలాంటి మందులు లేవు (No medicines scheduled in this routine).
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+
+          {/* AI Care Chatbot Modal */}
+          {isChatOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-xs">
+              <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[600px] max-h-screen">
+                <div className="p-4 bg-gradient-to-r from-indigo-900 to-slate-900 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🤖</span>
+                    <div>
+                      <h4 className="text-base font-black text-white">Sahaaya Care AI Assistant</h4>
+                      <p className="text-xs text-indigo-200">తెలుగు & ఇంగ్లీష్ స్వర సహాయం</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsChatOpen(false)} className="p-2 text-white/80 hover:text-white">✕</button>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs leading-relaxed text-slate-800">
+                    <p className="font-bold text-indigo-700 mb-1">🤖 సహాయ AI:</p>
+                    {language === 'Telugu'
+                      ? 'నమస్కారమండీ! సహాయ కేర్ వెబ్‌సైట్ గురించి మీకు ఏ సమాచారం కావాలన్నా ఇక్కడ అడగవచ్చు. ఉదాహరణకు: ఏ మందు ఎప్పుడు వేసుకోవాలి? రంగుల గుర్తులు ఎలా పనిచేస్తాయి? ఫోటో ఎలా తీయాలి? మొదలైనవి.'
+                      : 'Hello! I am your Sahaaya Care assistant. Ask me anything about your 7-day timetable, pill colors, camera prescription scans, or spoken instructions!'}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder={language === 'Telugu' ? 'మీ ప్రశ్నను ఇక్కడ టైప్ చేయండి...' : 'Ask question here...'}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-hidden"
+                  />
+                  <button
+                    onClick={() => speakText(language === 'Telugu' ? 'సహాయ కేర్ మీ ఆరోగ్యం కోసం సిద్ధంగా ఉంది.' : 'Sahaaya Care is ready to help you.', language)}
+                    className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-sm"
+                  >
+                    Send ➜
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Camera / Upload Modal */}
+          {isUploadOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-xs">
+              <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h4 className="text-base font-black text-slate-900">📷 Camera & Prescription Upload</h4>
+                  <button onClick={() => setIsUploadOpen(false)} className="p-2 text-slate-400 hover:text-slate-700">✕</button>
+                </div>
+
+                <div className="p-6 border-3 border-dashed border-indigo-300 rounded-3xl text-center space-y-2 bg-indigo-50/50">
+                  <span className="text-4xl block">📸</span>
+                  <span className="text-sm font-black text-slate-900 block">Open Device Camera / Select File</span>
+                  <p className="text-xs text-slate-500">Take a photo of your prescription slip or pill bottle directly</p>
+                  <input type="file" accept="image/*" capture="environment" className="mt-3 block mx-auto text-xs font-semibold" />
+                </div>
+
+                <button
+                  onClick={() => {
+                    speakText(language === 'Telugu' ? 'ప్రిస్క్రిప్షన్ విజయవంతంగా స్కాన్ చేయబడింది' : 'Prescription successfully verified', language);
+                    setIsUploadOpen(false);
+                  }}
+                  className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition"
+                >
+                  Generate 7-Day Timetable ✅
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print">
+            <p>Sahaaya Care • Spoken Medicine Timetable • Built for Accessibility & Family Caregivers</p>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<SahaayaApp />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validation functions
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'fullName'])
+        && data.keys().hasOnly(['userId', 'fullName', 'email', 'phoneNumber', 'role', 'preferredLanguage', 'updatedAt'])
+        && data.userId == request.auth.uid
+        && data.userId is string && data.userId.size() <= 128
+        && data.fullName is string && data.fullName.size() > 0 && data.fullName.size() <= 100
+        && (!('email' in data) || (data.email is string && data.email.size() <= 120))
+        && (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 20))
+        && (!('role' in data) || (data.role in ['patient', 'caregiver']))
+        && (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 30))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidPatientSchedule(data) {
+      return data.keys().hasAll(['userId', 'regimenTitle', 'medicinesJson'])
+        && data.keys().hasOnly(['userId', 'regimenTitle', 'spokenOverview', 'medicinesJson', 'updatedAt'])
+        && data.userId == request.auth.uid
+        && data.userId is string && data.userId.size() <= 128
+        && data.regimenTitle is string && data.regimenTitle.size() <= 150
+        && data.medicinesJson is string && data.medicinesJson.size() <= 50000
+        && (!('spokenOverview' in data) || (data.spokenOverview is string && data.spokenOverview.size() <= 2000))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidAdherenceRecord(data) {
+      return data.keys().hasAll(['userId', 'takenLogsJson'])
+        && data.keys().hasOnly(['userId', 'takenLogsJson', 'updatedAt'])
+        && data.userId == request.auth.uid
+        && data.userId is string && data.userId.size() <= 128
+        && data.takenLogsJson is string && data.takenLogsJson.size() <= 50000
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['userId', 'role', 'text'])
+        && data.keys().hasOnly(['userId', 'role', 'text', 'groundingSources', 'createdAt'])
+        && data.userId == request.auth.uid
+        && data.userId is string && data.userId.size() <= 128
+        && data.role in ['user', 'assistant']
+        && data.text is string && data.text.size() <= 10000
+        && (!('groundingSources' in data) || (data.groundingSources is string && data.groundingSources.size() <= 10000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    // User profiles: Isolated to owner
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Schedules: Isolated to owner
+    match /schedules/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidPatientSchedule(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidPatientSchedule(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Adherence logs: Isolated to owner
+    match /adherence/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidAdherenceRecord(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidAdherenceRecord(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Chat messages subcollection
+    match /chats/{userId}/messages/{messageId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(messageId);
+      allow list: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidId(messageId) && isValidChatMessage(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidId(messageId) && isValidChatMessage(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(messageId);
+    }
+  }
+}

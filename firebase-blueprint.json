@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information containing authentication and patient details",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique user identifier matching request auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Patient or caregiver full name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 120
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "10-digit mobile number",
+          "maxLength": 20
+        },
+        "role": {
+          "type": "string",
+          "description": "User role: patient or caregiver",
+          "enum": ["patient", "caregiver"]
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "Selected spoken language",
+          "maxLength": 30
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update",
+          "maxLength": 50
+        }
+      },
+      "required": ["userId", "fullName"]
+    },
+    "PatientSchedule": {
+      "title": "PatientSchedule",
+      "description": "Complete 7-day personalized medicine timetable for a user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user identifier matching request auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "regimenTitle": {
+          "type": "string",
+          "description": "Title of the medicine regimen",
+          "maxLength": 150
+        },
+        "spokenOverview": {
+          "type": "string",
+          "description": "Spoken auditory guide summary",
+          "maxLength": 2000
+        },
+        "medicinesJson": {
+          "type": "string",
+          "description": "Serialized JSON of medicines array with shapes, colors, and time slots",
+          "maxLength": 50000
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update",
+          "maxLength": 50
+        }
+      },
+      "required": ["userId", "regimenTitle", "medicinesJson"]
+    },
+    "AdherenceRecord": {
+      "title": "AdherenceRecord",
+      "description": "Daily medication adherence log tracking swallowed pills",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user identifier matching request auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "takenLogsJson": {
+          "type": "string",
+          "description": "Serialized JSON record of taken pill slots",
+          "maxLength": 50000
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update",
+          "maxLength": 50
+        }
+      },
+      "required": ["userId", "takenLogsJson"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Gemini clinical assistant conversation message",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Author user ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "description": "Message sender role: user or assistant",
+          "enum": ["user", "assistant"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Message body content",
+          "maxLength": 10000
+        },
+        "groundingSources": {
+          "type": "string",
+          "description": "Serialized JSON citations from Google Search grounding",
+          "maxLength": 10000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of message creation",
+          "maxLength": 50
+        }
+      },
+      "required": ["userId", "role", "text"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile with isolation to owner"
+    },
+    "/schedules/{userId}": {
+      "schema": "PatientSchedule",
+      "description": "Personalized 7-day medicine schedules owned by the user"
+    },
+    "/adherence/{userId}": {
+      "schema": "AdherenceRecord",
+      "description": "Adherence tracking log for medicine compliance"
+    },
+    "/chats/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Gemini chatbot conversation message stream per user"
+    }
+  }
+}

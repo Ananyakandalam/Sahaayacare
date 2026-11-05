@@ -1,0 +1,6 @@
+{
+  "summary": "Implementation plan to package the complete Sahaaya Care application into both a downloadable ZIP archive (full Node.js/Vite/TypeScript project for VS Code) and a self-contained zero-install sahaya.care.html file for Live Server/online compilers, complete with dual in-app download triggers and setup documentation.",
+  "updatedAt": "2026-11-05T17:23:59.775544148Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
