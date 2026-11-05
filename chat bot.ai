@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediBot Care — Healthcare-Only AI Chatbot App</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 9999px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+    @keyframes bounceDot {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-5px); opacity: 1; }
+    }
+    .typing-dot-1 { animation: bounceDot 1.2s infinite ease-in-out 0s; }
+    .typing-dot-2 { animation: bounceDot 1.2s infinite ease-in-out 0.2s; }
+    .typing-dot-3 { animation: bounceDot 1.2s infinite ease-in-out 0.4s; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 h-screen w-full overflow-hidden select-none sm:select-auto transition-colors duration-200">
+  <div class="flex h-full w-full relative">
+    <!-- Mobile Backdrop -->
+    <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-20 hidden lg:hidden"></div>
+    <!-- Left Sidebar: Conversations & Modes -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out">
+      <!-- Brand Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="font-bold text-base tracking-tight leading-none">MediBot Care</h1>
+            <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Healthcare-Only AI</span>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Close Menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <!-- New Chat Button -->
+      <div class="p-3">
+        <button id="newChatBtn" class="w-full py-2.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>New Conversation</span>
+        </button>
+      </div>
+      <!-- Search Filter -->
+      <div class="px-3 pb-2">
+        <div class="relative">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M16.65 10.825a5.825 5.825 0 11-11.65 0 5.825 5.825 0 0111.65 0z"/>
+          </svg>
+          <input id="searchChatsInput" type="text" placeholder="Filter chats..." class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none transition" />
+        </div>
+      </div>
+      <!-- Conversation List -->
+      <div class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
+        <span>Conversations</span>
+        <span id="chatCountBadge" class="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">1</span>
+      </div>
+      <div id="chatListContainer" class="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1"></div>
+      <!-- Bot Customizer & Settings Footer -->
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5 bg-slate-50/50 dark:bg-slate-900/50">
+        <button id="openTrainModalBtn" class="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 flex items-center justify-between transition">
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+            Train Custom Responses
+          </span>
+          <span id="customRulesCount" class="px-1.5 py-0.5 text-[10px] rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 font-semibold">3</span>
+        </button>
+        <button id="openApiModalBtn" class="w-full px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 flex items-center justify-between transition">
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+            Engine &amp; API Key
+          </span>
+          <span id="engineStatusBadge" class="px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">Built-in AI</span>
+        </button>
+      </div>
+    </aside>
+    <!-- Main Chat Area -->
+    <main class="flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-slate-950">
+      <!-- Top Navigation Bar -->
+      <header class="h-16 px-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md z-10">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button id="openSidebarBtn" class="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Open Menu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <!-- Persona Selector -->
+          <div class="flex items-center gap-2 min-w-0">
+            <div id="activePersonaIcon" class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-base shrink-0">🤖</div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <label for="personaSelect" class="sr-only">Choose Bot Persona</label>
+                <select id="personaSelect" class="bg-transparent font-semibold text-sm text-slate-900 dark:text-slate-100 focus:outline-none cursor-pointer pr-1 truncate">
+                  <option value="assistant" class="bg-white dark:bg-slate-900">Dr. Nova — General Healthcare Guide</option>
+                  <option value="coder" class="bg-white dark:bg-slate-900">NutriBot — Nutrition &amp; Diet Guide</option>
+                  <option value="tutor" class="bg-white dark:bg-slate-900">MedTutor — Anatomy &amp; Health Quiz</option>
+                  <option value="creative" class="bg-white dark:bg-slate-900">MindCare — Sleep &amp; Stress Coach</option>
+                  <option value="support" class="bg-white dark:bg-slate-900">ClinicCare — First-Aid &amp; Patient Help</option>
+                </select>
+              </div>
+              <p id="personaSubtitle" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Strictly healthcare, symptoms, wellness &amp; medical education only</p>
+            </div>
+          </div>
+        </div>
+        <!-- Top Right Controls -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="voiceToggleBtn" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Voice Read-Aloud (TTS)">
+            <svg id="voiceOnIcon" class="w-4 h-4 hidden text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+            </svg>
+            <svg id="voiceOffIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+            </svg>
+          </button>
+          <button id="exportChatBtn" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Export Chat Transcript">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+          </button>
+          <button id="clearChatBtn" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Clear Current Messages">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+          <button id="themeToggleBtn" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Toggle Light/Dark Mode">
+            <svg id="sunIcon" class="w-4 h-4 hidden dark:block text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <svg id="moonIcon" class="w-4 h-4 block dark:hidden text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+      <!-- Messages Stream -->
+      <div id="messagesContainer" class="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-5">
+        <!-- Populated dynamically by JS -->
+      </div>
+      <!-- Quick Suggestion Chips -->
+      <div class="px-4 pt-1 pb-2 border-t border-slate-100 dark:border-slate-900 bg-white dark:bg-slate-950">
+        <div class="max-w-3xl mx-auto">
+          <div id="quickPromptsBar" class="flex items-center gap-2 overflow-x-auto custom-scrollbar py-1"></div>
+        </div>
+      </div>
+      <!-- Input Composer -->
+      <div class="px-4 pb-4 pt-1 bg-white dark:bg-slate-950 shrink-0">
+        <div class="max-w-3xl mx-auto">
+          <form id="chatForm" class="relative rounded-2xl border border-slate-300 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition shadow-sm">
+            <textarea
+              id="messageInput"
+              rows="1"
+              placeholder="Ask a healthcare, symptom, nutrition, or wellness question... (Healthcare topics only)"
+              class="w-full bg-transparent px-4 pt-3 pb-11 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none resize-none max-h-36 custom-scrollbar"
+            ></textarea>
+            <div class="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+              <div class="flex items-center gap-1">
+                <button type="button" id="insertMathBtn" class="px-2 py-1 rounded-md text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition" title="Try a calculation">
+                  🧮 Calc
+                </button>
+                <button type="button" id="insertCodeBtn" class="px-2 py-1 rounded-md text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition" title="Generate code sample">
+                  💻 Code
+                </button>
+                <button type="button" id="insertQuizBtn" class="px-2 py-1 rounded-md text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition" title="Start a quick trivia question">
+                  🎯 Quiz Me
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="charCounter" class="text-[11px] text-slate-400 dark:text-slate-500">0 chars</span>
+                <button
+                  type="submit"
+                  id="sendBtn"
+                  class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition disabled:opacity-40"
+                >
+                  <span>Send</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!-- Modal 1: Train Custom Bot Responses -->
+  <div id="trainModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-base">Train Custom Bot Triggers</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Teach your chatbot custom keyword rules and instant replies</p>
+        </div>
+        <button id="closeTrainModalBtn" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto custom-scrollbar space-y-4 flex-1">
+        <form id="addRuleForm" class="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
+          <div>
+            <label for="ruleTriggerInput" class="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">When user message contains keyword/phrase:</label>
+            <input id="ruleTriggerInput" type="text" required placeholder="e.g. blood pressure, clinic hours, allergy tips" class="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+          </div>
+          <div>
+            <label for="ruleResponseInput" class="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">Bot replies with:</label>
+            <textarea id="ruleResponseInput" rows="2" required placeholder="e.g. Normal resting adult blood pressure is typically below 120/80 mmHg." class="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none resize-none"></textarea>
+          </div>
+          <button type="submit" class="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition">
+            + Add Custom Rule
+          </button>
+        </form>
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Active Custom Rules</h3>
+          <div id="customRulesList" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal 2: Engine & Live API Key Settings -->
+  <div id="apiModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-base">AI Engine &amp; API Connection</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Use the built-in smart engine or connect a live Gemini API key</p>
+        </div>
+        <button id="closeApiModalBtn" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <form id="apiSettingsForm" class="p-5 space-y-4">
+        <div>
+          <label for="botNameInput" class="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">Your Name (so the bot remembers you)</label>
+          <input id="botNameInput" type="text" placeholder="e.g. Alex" class="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none" />
+        </div>
+        <div>
+          <label for="geminiKeyInput" class="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">Optional Google Gemini API Key</label>
+          <input id="geminiKeyInput" type="password" placeholder="AIzaSy... (Leave blank for Built-in Smart Engine)" class="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:outline-none font-mono" />
+          <p class="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            When blank, NovaBot uses its built-in offline engine (math solver, code generator, quiz master, custom rules &amp; persona responses). If you paste a Gemini key, it calls <code class="font-mono text-indigo-500">gemini-2.5-flash</code> directly from your browser.
+          </p>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" id="cancelApiModalBtn" class="px-4 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Toast Notification -->
+  <div id="toastBanner" class="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium shadow-lg transform translate-y-16 opacity-0 pointer-events-none transition-all duration-200">
+    Notification
+  </div>
+  <script>
+    // --- Safe Storage Helper ---
+    const Storage = {
+      get(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      },
+      set(key, val) {
+        try {
+          localStorage.setItem(key, JSON.stringify(val));
+        } catch (e) {
+          // ignore storage quota/sandbox blocks
+        }
+      }
+    };
+    // --- Persona Definitions (Healthcare-Only Modes) ---
+    const PERSONAS = {
+      assistant: {
+        name: 'Dr. Nova (Health Guide)',
+        icon: '🩺',
+        subtitle: 'Strictly healthcare, symptoms, preventive care & BMI/wellness metrics',
+        greeting: "Hello! I'm **Dr. Nova**, your dedicated **Healthcare-Only AI Assistant**. I strictly answer questions related to health, symptoms, nutrition, fitness, first aid, and mental wellness—and I automatically decline non-healthcare topics.\n\n*Disclaimer: Educational information only, not a substitute for professional medical advice.* How can I support your health today?",
+        prompts: [
+          'What are common remedies for a sore throat and mild fever?',
+          'Calculate BMI for 70 kg and 175 cm',
+          'How much water should I drink daily?',
+          'Signs of dehydration to watch for'
+        ]
+      },
+      coder: {
+        name: 'NutriBot (Diet & Nutrition)',
+        icon: '🥗',
+        subtitle: 'Balanced meal plans, macronutrients, vitamins & hydration',
+        greeting: "Welcome! I'm **NutriBot**, your **Nutrition & Diet Specialist**. Ask me about balanced meal plans, protein/vitamin sources, gut health, hydration, or healthy weight management!",
+        prompts: [
+          'Create a high-protein balanced daily meal plan',
+          'Which foods are rich in Iron and Vitamin D?',
+          'Healthy pre-workout and post-workout snacks',
+          'Foods that help lower cholesterol naturally'
+        ]
+      },
+      tutor: {
+        name: 'MedTutor (Medical & Health Quiz)',
+        icon: '🧬',
+        subtitle: 'Human anatomy explanations, medical terms & health trivia quizzes',
+        greeting: "Hello learner! I'm **MedTutor**. Ask me how the cardiovascular, immune, or nervous system works, or click **🎯 Quiz Me** to test your healthcare & anatomy knowledge!",
+        prompts: [
+          'Quiz me with a healthcare trivia question',
+          'How does the human immune system fight viruses?',
+          'What is the difference between systolic and diastolic blood pressure?',
+          'Explain how insulin regulates blood sugar'
+        ]
+      },
+      creative: {
+        name: 'MindCare (Sleep & Stress Coach)',
+        icon: '🧘',
+        subtitle: 'Sleep hygiene, breathing exercises, mindfulness & burnout recovery',
+        greeting: "Hi there, take a deep breath. I'm **MindCare**, your **Sleep & Stress Wellness Coach**. Ask me for guided breathing exercises, better sleep routines, or ways to ease daily stress and eye strain.",
+        prompts: [
+          'Guide me through the 4-7-8 breathing exercise for stress',
+          'Give me a 5-step sleep hygiene checklist for better rest',
+          'How to prevent digital eye strain and tension headaches?',
+          'Morning mindfulness routine for energy'
+        ]
+      },
+      support: {
+        name: 'ClinicCare (First-Aid & Triage)',
+        icon: '🚑',
+        subtitle: 'First-aid steps, doctor visit preparation & emergency red flags',
+        greeting: "Welcome to **ClinicCare Support**. Ask me about basic first-aid steps (burns, sprains, cuts), how to prepare for a doctor's appointment, or when symptoms require urgent medical care.",
+        prompts: [
+          'First-aid steps for a minor kitchen burn',
+          'How do I treat a sprained ankle using R.I.C.E.?',
+          'What questions should I ask at my annual physical checkup?',
+          'When is a fever considered a medical emergency?'
+        ]
+      }
+    };
+    // --- Built-in Healthcare Trivia Questions ---
+    const TRIVIA_BANK = [
+      {
+        q: "What is considered a normal resting blood pressure reading for a healthy adult?",
+        options: ["A) Below 120/80 mmHg", "B) 145/95 mmHg", "C) 160/100 mmHg", "D) 90/40 mmHg"],
+        answer: "a",
+        answerText: "A) Below 120/80 mmHg — readings consistently at or above 130/80 mmHg are generally classified as elevated or hypertension."
+      },
+      {
+        q: "Which vitamin is primarily synthesized by the human skin when exposed to sunlight?",
+        options: ["A) Vitamin C", "B) Vitamin B12", "C) Vitamin D", "D) Vitamin K"],
+        answer: "c",
+        answerText: "C) Vitamin D — essential for calcium absorption, bone health, and immune function!"
+      },
+      {
+        q: "In first aid for a sprained joint, what does the acronym 'R.I.C.E.' stand for?",
+        options: ["A) Run, Inhale, Cool, Extend", "B) Rest, Ice, Compression, Elevation", "C) Relax, Inspect, Clean, Exercise", "D) Restore, Immobilize, Cover, Evaluate"],
+        answer: "b",
+        answerText: "B) Rest, Ice, Compression, Elevation — helps reduce swelling and pain in acute soft-tissue injuries."
+      },
+      {
+        q: "Which organ in the human body produces insulin to regulate blood glucose levels?",
+        options: ["A) Gallbladder", "B) Spleen", "C) Pancreas", "D) Thyroid gland"],
+        answer: "c",
+        answerText: "C) Pancreas — beta cells in the pancreas release insulin to help cells absorb glucose from the bloodstream."
+      }
+    ];
+    // --- Default Healthcare Custom Rules ---
+    const DEFAULT_RULES = [
+      { id: 'r1', trigger: 'blood pressure', response: '🩺 **Blood Pressure Guide:**\n- **Normal:** Less than `120/80 mmHg`\n- **Elevated:** `120–129` systolic and less than `80` diastolic\n- **High (Hypertension):** `130/80 mmHg` or higher\n*Tip: Reduce sodium, stay active, and measure after resting quietly for 5 minutes.*' },
+      { id: 'r2', trigger: 'emergency', response: '🚑 **Medical Emergency Warning:** If you or someone nearby experiences **chest pain, difficulty breathing, sudden numbness/weakness, severe bleeding, or loss of consciousness**, please call your local emergency number (**108 / 112 / 911**) or visit the nearest Emergency Room immediately.' },
+      { id: 'r3', trigger: 'hydration', response: '💧 **Daily Hydration Guideline:** Most adults need roughly **2.5 to 3.5 liters (8–12 cups)** of water per day, or about `35 ml per kg of body weight`—and more during hot weather or exercise!' }
+    ];
+    // --- Healthcare Guardrail Keyword Classifier ---
+    const HEALTH_KEYWORDS = [
+      'health', 'medical', 'doctor', 'clinic', 'hospital', 'nurse', 'patient', 'symptom', 'pain', 'ache',
+      'fever', 'cold', 'flu', 'cough', 'throat', 'headache', 'migraine', 'stomach', 'nausea', 'dizzy',
+      'allergy', 'rash', 'skin', 'burn', 'cut', 'bleed', 'sprain', 'fracture', 'injury', 'first aid', 'rice',
+      'blood', 'pressure', 'heart', 'pulse', 'cholesterol', 'diabetes', 'insulin', 'sugar', 'glucose',
+      'bmi', 'weight', 'height', 'kg', 'cm', 'calorie', 'diet', 'nutrition', 'food', 'meal', 'protein',
+      'carb', 'fat', 'fiber', 'vitamin', 'mineral', 'iron', 'calcium', 'water', 'hydrat', 'dehydrat',
+      'sleep', 'insomnia', 'rest', 'nap', 'stress', 'anxiety', 'mental', 'mindful', 'breath', 'meditat',
+      'exercise', 'workout', 'fitness', 'stretch', 'muscle', 'joint', 'back', 'neck', 'eye', 'strain',
+      'vaccine', 'immune', 'virus', 'bacteria', 'infection', 'antibiotic', 'medicine', 'medication', 'pill',
+      'dose', 'prescription', 'checkup', 'physical', 'screening', 'dental', 'tooth', 'gum', 'pregnancy',
+      'wellness', 'wellbeing', 'care', 'therapy', 'rehab', 'anatomy', 'organ', 'cell', 'lung', 'liver',
+      'kidney', 'brain', 'bone', 'digest', 'gut', 'probiotic', 'quiz', 'trivia', 'hello', 'hi', 'hey', 'help', 'thank'
+    ];
+    const NON_HEALTH_BLOCKLIST = [
+      'javascript', 'python', 'sql', 'flexbox', 'css', 'html', 'react', 'angular', 'nodejs', 'compiler',
+      'palindrome', 'regex', 'stock market', 'crypto', 'bitcoin', 'movie', 'video game', 'football score',
+      'celebrity', 'politics', 'election', 'car repair', 'tax return', 'real estate'
+    ];
+    function isHealthcareQuery(text) {
+      const lower = text.toLowerCase().trim();
+      if (state.activeQuiz && (/^[a-d]$/i.test(lower) || lower.includes('skip') || lower.includes('stop'))) {
+        return true;
+      }
+      for (const rule of state.customRules) {
+        if (rule.trigger && lower.includes(rule.trigger.toLowerCase())) {
+          return true;
+        }
+      }
+      for (const blocked of NON_HEALTH_BLOCKLIST) {
+        if (lower.includes(blocked)) {
+          return false;
+        }
+      }
+      for (const kw of HEALTH_KEYWORDS) {
+        if (lower.includes(kw)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    // --- Application State ---
+    let state = {
+      theme: Storage.get('medibot_theme', 'dark'),
+      voiceEnabled: Storage.get('medibot_voice', false),
+      userName: Storage.get('medibot_username', ''),
+      geminiApiKey: Storage.get('medibot_gemini_key', ''),
+      searchQuery: '',
+      activeQuiz: null,
+      customRules: Storage.get('medibot_rules', DEFAULT_RULES),
+      chats: Storage.get('medibot_chats', null),
+      activeChatId: Storage.get('medibot_active_chat', null)
+    };
+    function createInitialChat(personaKey = 'assistant') {
+      const persona = PERSONAS[personaKey] || PERSONAS.assistant;
+      const id = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      return {
+        id,
+        title: `${persona.name}`,
+        persona: personaKey,
+        updatedAt: Date.now(),
+        messages: [
+          {
+            id: 'msg_init_' + Date.now(),
+            role: 'bot',
+            text: persona.greeting,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]
+      };
+    }
+    if (!state.chats || !Array.isArray(state.chats) || state.chats.length === 0) {
+      const first = createInitialChat('assistant');
+      state.chats = [first];
+      state.activeChatId = first.id;
+    } else if (!state.chats.some(c => c.id === state.activeChatId)) {
+      state.activeChatId = state.chats[0].id;
+    }
+    function saveState() {
+      Storage.set('medibot_theme', state.theme);
+      Storage.set('medibot_voice', state.voiceEnabled);
+      Storage.set('medibot_username', state.userName);
+      Storage.set('medibot_gemini_key', state.geminiApiKey);
+      Storage.set('medibot_rules', state.customRules);
+      Storage.set('medibot_chats', state.chats);
+      Storage.set('medibot_active_chat', state.activeChatId);
+    }
+    function getActiveChat() {
+      let chat = state.chats.find(c => c.id === state.activeChatId);
+      if (!chat) {
+        chat = state.chats[0];
+        state.activeChatId = chat.id;
+      }
+      return chat;
+    }
+    // --- Toast Notification ---
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toastBanner');
+      el.textContent = msg;
+      el.classList.remove('translate-y-16', 'opacity-0');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.add('translate-y-16', 'opacity-0');
+      }, 2400);
+    }
+    // --- Safe Clipboard Copy ---
+    function copyTextToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Copied to clipboard!');
+        }).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!');
+      } catch (e) {
+        showToast('Unable to copy');
+      }
+      document.body.removeChild(ta);
+    }
+    // --- Markdown-lite Formatter ---
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function formatBotMessage(rawText) {
+      const codeBlocks = [];
+      let processed = String(rawText).replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+        const idx = codeBlocks.length;
+        codeBlocks.push({ lang: lang || 'guide', code: code.trim() });
+        return `@@CODEBLOCK_${idx}@@`;
+      });
+      processed = escapeHtml(processed);
+      processed = processed.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 font-mono text-xs text-emerald-600 dark:text-emerald-300">$1</code>');
+      processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-slate-900 dark:text-white">$1</strong>');
+      processed = processed.replace(/\*([^*]+)\*/g, '<em class="italic text-slate-600 dark:text-slate-400">$1</em>');
+      processed = processed.replace(/^- (.*)$/gm, '<li class="ml-4 list-disc">$1</li>');
+      processed = processed.replace(/\n/g, '<br/>');
+      processed = processed.replace(/@@CODEBLOCK_(\d+)@@/g, (_, idxStr) => {
+        const item = codeBlocks[Number(idxStr)];
+        const encoded = encodeURIComponent(item.code);
+        return `
+          <div class="my-2.5 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 text-slate-100">
+            <div class="px-3 py-1.5 bg-slate-800/90 flex items-center justify-between text-[11px] font-mono text-slate-400">
+              <span>${escapeHtml(item.lang)}</span>
+              <button type="button" data-copy-code="${encoded}" class="copy-code-btn px-2 py-0.5 rounded hover:bg-slate-700 text-slate-200 transition">Copy text</button>
+            </div>
+            <pre class="p-3 text-xs font-mono overflow-x-auto leading-relaxed"><code>${escapeHtml(item.code)}</code></pre>
+          </div>
+        `;
+      });
+      return processed;
+    }
+    // --- Speech Synthesis ---
+    function speakText(text) {
+      if (!state.voiceEnabled) return;
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const clean = String(text).replace(/```[\s\S]*?```/g, '').replace(/[*_`#]/g, '');
+          const utter = new SpeechSynthesisUtterance(clean);
+          utter.rate = 1.02;
+          window.speechSynthesis.speak(utter);
+        }
+      } catch (e) {}
+    }
+    // --- Built-in Healthcare-Only Response Engine ---
+    function generateLocalResponse(userText, personaKey) {
+      const clean = userText.trim();
+      const lower = clean.toLowerCase();
+      if (state.activeQuiz) {
+        const q = state.activeQuiz;
+        const firstToken = lower.replace(/[^a-d]/g, '')[0];
+        if (lower.includes('skip') || lower.includes('stop')) {
+          state.activeQuiz = null;
+          return `No problem! The correct health answer was **${q.answerText}**. What healthcare question can I help you with next?`;
+        }
+        if (firstToken && ['a', 'b', 'c', 'd'].includes(firstToken) && clean.length <= 4) {
+          state.activeQuiz = null;
+          if (firstToken === q.answer) {
+            return `🎉 **Correct!** ${q.answerText}\n\nWant another medical trivia question? Just click **🎯 Quiz Me** or type **"Quiz me"**!`;
+          } else {
+            return `Not quite! You chose **${firstToken.toUpperCase()}**, but the correct answer is **${q.answerText}**.\n\nType **"Quiz me"** for another healthcare question!`;
+          }
+        }
+      }
+      for (const rule of state.customRules) {
+        if (rule.trigger && lower.includes(rule.trigger.toLowerCase())) {
+          return rule.response;
+        }
+      }
+      if (!isHealthcareQuery(clean)) {
+        return `⚕️ **Healthcare-Only Chatbot Notice:**\n\nI am configured to answer **only healthcare, medical wellness, symptom, nutrition, fitness, first-aid, and mental health questions**. I cannot assist with non-healthcare topics like *"${clean.slice(0, 50)}"*.\n\n**Try asking me about:**\n- **Symptoms & Care:** *"What helps a sore throat and mild fever?"*\n- **Health Metrics:** *"Calculate BMI for 70 kg and 175 cm"*\n- **Nutrition:** *"Create a high-protein balanced meal plan"*\n- **First Aid & Wellness:** *"How do I treat a sprained ankle using R.I.C.E.?"*`;
+      }
+      if (/^(hi|hello|hey|help|good morning|good evening)\b/i.test(clean) && clean.length < 25) {
+        const greetName = state.userName ? `, **${state.userName}**` : '';
+        return `Hello${greetName}! 🩺 I'm your **Healthcare-Only AI Assistant**. You can ask me about:\n- **Symptoms & Self-Care** (fever, cough, headache, digestion, hydration)\n- **BMI & Hydration Calculators** (e.g., *Calculate BMI for 70 kg and 175 cm*)\n- **Nutrition & Meal Planning** (high-protein diets, vitamins, heart-healthy foods)\n- **Sleep, Stress & First Aid** (4-7-8 breathing, R.I.C.E. method, minor burns)`;
+      }
+      if (lower.includes('quiz') || lower.includes('trivia')) {
+        const item = TRIVIA_BANK[Math.floor(Math.random() * TRIVIA_BANK.length)];
+        state.activeQuiz = item;
+        return `🧬 **Healthcare & Anatomy Pop Quiz!**\n\n**${item.q}**\n- ${item.options.join('\n- ')}\n\nReply with **A**, **B**, **C**, or **D**!`;
+      }
+      if (lower.includes('bmi') || (lower.includes('kg') && lower.includes('cm'))) {
+        const kgMatch = clean.match(/(\d+(?:\.\d+)?)\s*kg/i);
+        const cmMatch = clean.match(/(\d+(?:\.\d+)?)\s*cm/i);
+        const weightKg = kgMatch ? parseFloat(kgMatch[1]) : 70;
+        const heightCm = cmMatch ? parseFloat(cmMatch[1]) : 175;
+        const heightM = heightCm / 100;
+        const bmi = weightKg / (heightM * heightM);
+        const bmiVal = bmi.toFixed(1);
+        let category = 'Normal weight (18.5 – 24.9)';
+        if (bmi < 18.5) category = 'Underweight (< 18.5)';
+        else if (bmi >= 25 && bmi < 30) category = 'Overweight (25.0 – 29.9)';
+        else if (bmi >= 30) category = 'Obesity class (≥ 30.0)';
+        const waterLiters = (weightKg * 0.035).toFixed(1);
+        return `🧮 **Health & BMI Calculation (${weightKg} kg, ${heightCm} cm):**\n\n- **Estimated BMI:** \`${bmiVal} kg/m²\`\n- **WHO Category:** **${category}**\n- **Estimated Daily Water Target:** \`~${waterLiters} Liters/day\` (35 ml/kg)\n\n*Note: BMI is a general screening metric and does not distinguish between muscle mass and body fat. Try typing your own numbers like "Calculate BMI for 65 kg and 168 cm"!*`;
+      }
+      if (lower.includes('fever') || lower.includes('throat') || lower.includes('cold') || lower.includes('flu') || lower.includes('cough')) {
+        return `🩺 **Supportive Care for Sore Throat, Cold & Mild Fever:**\n\n- **Hydration & Warm Fluids:** Sip warm water, herbal tea with honey, or clear broth to soothe the throat and prevent dehydration.\n- **Saltwater Gargle:** Gargle with \`1/2 teaspoon of salt\` in a glass of warm water every 3–4 hours to ease throat inflammation.\n- **Rest & Monitoring:** Monitor body temperature regularly. Rest allows your immune system to recover.\n- **⚠️ When to Seek Immediate Medical Care:** If fever exceeds **103°F (39.4°C)**, lasts more than 3 days, or is accompanied by difficulty breathing, severe neck stiffness, or inability to swallow fluids.`;
+      }
+      if (lower.includes('dehydrat') || lower.includes('water')) {
+        return `💧 **Hydration Guide & Signs of Dehydration:**\n\n- **Daily Target:** Aim for **2.5–3.5 liters (8–12 cups)** of fluids daily, or roughly \`35 ml per kg\` of body weight.\n- **Early Warning Signs:** Dry mouth, dark yellow urine, fatigue, mild headache, or dizziness when standing.\n- **Severe Red Flags:** Confusion, rapid heart rate, sunken eyes, or no urination for 8+ hours (requires urgent medical rehydration).\n- **Pro Tip:** Use Oral Rehydration Salts (ORS) if losing fluids from fever, sweating, or stomach upset.`;
+      }
+      if (lower.includes('meal plan') || lower.includes('protein') || lower.includes('diet') || lower.includes('snack')) {
+        return `🥗 **Balanced High-Protein Daily Nutrition Plan:**\n\n\`\`\`nutrition-plan
+Breakfast: Greek yogurt or oats + chia seeds, berries & 2 boiled eggs (or tofu scramble)
+Lunch:     Quinoa/brown rice bowl with grilled chicken or lentils, spinach & olive oil
+Snack:     Handful of almonds/walnuts + an apple or roasted chickpeas
+Dinner:    Baked salmon or paneer/beans + steamed broccoli & sweet potato
+Hydration: 2.5L - 3.0L water + unsweetened green/herbal tea
+\`\`\`\n\n- **Macro Target:** ~30% lean protein, ~40% complex high-fiber carbs, ~30% healthy unsaturated fats.`;
+      }
+      if (lower.includes('iron') || lower.includes('vitamin')) {
+        return `💊 **Essential Micronutrients (Iron & Vitamin D):**\n\n- **Iron-Rich Foods:** Spinach, lentils, chickpeas, pumpkin seeds, red meat, and fortified cereals. *Tip: Pair plant-based iron with **Vitamin C** (citrus, bell peppers) to boost absorption by up to 3x!*\n- **Vitamin D Sources:** 15–20 minutes of morning sunlight, fatty fish (salmon, mackerel), egg yolks, fortified milk/plant milk, and mushrooms.`;
+      }
+      if (lower.includes('cholesterol') || lower.includes('heart')) {
+        return `❤️ **Heart Health & Lowering LDL Cholesterol Naturally:**\n\n- **Boost Soluble Fiber:** Oats, barley, beans, apples, and flaxseeds bind cholesterol in the digestive system.\n- **Switch to Healthy Fats:** Replace trans/saturated fats with extra-virgin olive oil, avocados, walnuts, and omega-3 rich fish.\n- **Aerobic Activity:** Aim for **150 minutes per week** of brisk walking, cycling, or swimming to raise protective HDL cholesterol.`;
+      }
+      if (lower.includes('immune') || lower.includes('virus')) {
+        return `🧬 **How the Human Immune System Fights Viruses:**\n\n- **1. Innate Defense (First Line):** Physical barriers (skin, mucous membranes) and phagocytes immediately detect and engulf foreign invaders.\n- **2. Adaptive T-Cells:** Helper T-cells coordinate the immune response while Cytotoxic T-cells destroy virus-infected body cells.\n- **3. B-Cells & Antibodies:** B-lymphocytes produce targeted **antibodies** that neutralize the virus and create **memory cells** for faster future protection.`;
+      }
+      if (lower.includes('systolic') || lower.includes('diastolic')) {
+        return `🩺 **Systolic vs. Diastolic Blood Pressure:**\n\n- **Systolic (Top Number, e.g. 120 mmHg):** Measures the pressure in your arteries when your heart muscle **contracts** and pumps blood out.\n- **Diastolic (Bottom Number, e.g. 80 mmHg):** Measures the pressure in your arteries when your heart **rests** between beats.`;
+      }
+      if (lower.includes('insulin') || lower.includes('diabetes') || lower.includes('sugar') || lower.includes('glucose')) {
+        return `🩸 **How Insulin Regulates Blood Sugar:**\n\n- After you eat carbohydrates, food breaks down into **blood glucose**.\n- The **pancreas** senses rising glucose and releases the hormone **insulin**.\n- Insulin acts like a **key**, unlocking muscle, fat, and liver cells so glucose can enter and be used for energy.\n- Pairing carbs with **fiber and protein** slows glucose spikes and supports steady insulin sensitivity.`;
+      }
+      if (lower.includes('4-7-8') || lower.includes('breath') || lower.includes('stress') || lower.includes('anxiety') || lower.includes('mindful')) {
+        return `🧘 **Guided 4-7-8 Calming Breath Exercise:**\n\n- **1. Inhale quietly** through your nose for **4 seconds**.\n- **2. Hold your breath** gently for **7 seconds**.\n- **3. Exhale slowly** through your mouth (making a soft whoosh sound) for **8 seconds**.\n- **Repeat for 4 cycles:** This activates your **parasympathetic nervous system**, lowering heart rate and cortisol within 90 seconds.`;
+      }
+      if (lower.includes('sleep') || lower.includes('insomnia')) {
+        return `😴 **5-Step Evidence-Based Sleep Hygiene Checklist:**\n\n- **1. Fixed Wake Window:** Wake up at the same time every day (even weekends) to anchor your circadian rhythm.\n- **2. 60-Minute Screen Curfew:** Dim bright overhead lights and avoid blue-light screens 1 hour before bed.\n- **3. Cool, Dark Bedroom:** Keep room temperature around **65–68°F (18–20°C)**.\n- **4. Caffeine Cutoff:** Avoid coffee, energy drinks, or strong tea within **8–10 hours** of bedtime.\n- **5. Wind-Down Cue:** Do 10 minutes of light stretching, reading, or 4-7-8 breathing.`;
+      }
+      if (lower.includes('eye') || lower.includes('headache') || lower.includes('migraine')) {
+        return `👁️ **Preventing Digital Eye Strain & Tension Headaches:**\n\n- **The 20-20-20 Rule:** Every **20 minutes**, look at an object **20 feet away** for **20 seconds** to relax eye focusing muscles.\n- **Ergonomics:** Position your screen an arm's length away with the top of the monitor at or slightly below eye level.\n- **Hydration & Blinking:** Consciously blink more often when using screens and stay hydrated to prevent dry eyes.`;
+      }
+      if (lower.includes('burn')) {
+        return `🚑 **First-Aid Steps for a Minor (First-Degree) Burn:**\n\n- **1. Cool the Burn:** Hold the affected area under **cool (not ice-cold) running tap water** for 10–15 minutes.\n- **2. Protect the Skin:** Never apply ice, butter, or toothpaste, as they trap heat or damage tissue.\n- **3. Cover Loosely:** Apply soothing aloe vera or sterile petroleum jelly and cover with a clean, non-stick sterile gauze.\n- **⚠️ Seek Medical Care:** If the burn is larger than 3 inches, forms large blisters, involves the face/hands/joints, or shows signs of infection.`;
+      }
+      if (lower.includes('sprain') || lower.includes('rice') || lower.includes('ankle')) {
+        return `🚑 **R.I.C.E. First-Aid Protocol for Sprains:**\n\n- **R — Rest:** Avoid putting weight on the injured joint for the first 24–48 hours.\n- **I — Ice:** Apply an ice pack wrapped in a cloth for **15–20 minutes** every 2–3 hours to reduce swelling.\n- **C — Compression:** Wrap snugly (not tightly) with an elastic bandage; loosen if toes/fingers feel numb or tingle.\n- **E — Elevation:** Prop the injured limb above heart level while resting to drain excess fluid.`;
+      }
+      if (lower.includes('checkup') || lower.includes('physical') || lower.includes('appointment')) {
+        return `📋 **Checklist for Your Annual Doctor's Checkup:**\n\n- **1. Bring Your Vitals & Med List:** Note all current medications, supplements, and any home blood pressure readings.\n- **2. Key Questions to Ask:**\n  - *"Which preventive blood tests (CBC, lipid panel, HbA1c, Vitamin D, thyroid) do I need this year?"*\n  - *"Are my vaccinations and age-appropriate screenings up to date?"*\n  - *"What lifestyle changes would have the biggest impact on my long-term health?"*`;
+      }
+      return `🩺 **MediBot Healthcare Guidance for:** *"${clean}"*\n\nHere is a structured clinical wellness overview:\n- **Track Key Patterns:** Note when the symptom or health concern started, its severity (1–10), and what makes it better or worse.\n- **Foundational Self-Care:** Prioritize adequate hydration (\`2.5–3L water/day\`), 7–8 hours of restorative sleep, and nutrient-dense whole foods.\n- **When to Consult a Clinician:** If symptoms persist, worsen, or interfere with daily activities, schedule an evaluation with a licensed healthcare professional.`;
+    }
+    // --- Live Gemini API Call (Strictly Healthcare System Prompt) ---
+    async function fetchGeminiResponse(userText, chat) {
+      if (!isHealthcareQuery(userText)) {
+        return generateLocalResponse(userText, chat.persona);
+      }
+      const persona = PERSONAS[chat.persona] || PERSONAS.assistant;
+      const sysInstruction = `You are ${persona.name} (${persona.subtitle}). CRITICAL RULE: You are a STRICTLY HEALTHCARE-ONLY assistant. You must ONLY answer questions related to healthcare, medicine, symptoms, nutrition, fitness, first aid, anatomy, and mental wellness. If the user asks about any non-healthcare topic (such as coding, programming, finance, movies, politics, general math unrelated to health), politely refuse and ask them to ask a healthcare question. Always include brief, evidence-based educational guidance in Markdown.`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(state.geminiApiKey.trim())}`;
+      const contents = chat.messages.slice(-8).map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      }));
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: sysInstruction }] },
+          contents
+        })
+      });
+      if (!resp.ok) {
+        throw new Error(`API returned status ${resp.status}`);
+      }
+      const data = await resp.json();
+      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!reply) throw new Error('Empty response from Gemini API');
+      return reply;
+    }
+    // --- UI Rendering Functions ---
+    function applyTheme() {
+      const root = document.documentElement;
+      if (state.theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    }
+    function renderTopBar() {
+      const chat = getActiveChat();
+      const persona = PERSONAS[chat.persona] || PERSONAS.assistant;
+      document.getElementById('activePersonaIcon').textContent = persona.icon;
+      document.getElementById('personaSelect').value = chat.persona;
+      document.getElementById('personaSubtitle').textContent = persona.subtitle;
+      document.getElementById('voiceOnIcon').classList.toggle('hidden', !state.voiceEnabled);
+      document.getElementById('voiceOffIcon').classList.toggle('hidden', state.voiceEnabled);
+      const badge = document.getElementById('engineStatusBadge');
+      if (state.geminiApiKey && state.geminiApiKey.trim().length > 5) {
+        badge.textContent = 'Gemini Live';
+      } else {
+        badge.textContent = 'Built-in AI';
+      }
+      document.getElementById('customRulesCount').textContent = String(state.customRules.length);
+    }
+    function renderSidebarChats() {
+      const container = document.getElementById('chatListContainer');
+      const query = state.searchQuery.trim().toLowerCase();
+      const filtered = state.chats.filter(c => {
+        if (!query) return true;
+        return c.title.toLowerCase().includes(query) ||
+          c.messages.some(m => m.text.toLowerCase().includes(query));
+      });
+      document.getElementById('chatCountBadge').textContent = String(state.chats.length);
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="px-3 py-6 text-center text-xs text-slate-400">No matching chats found</div>`;
+        return;
+      }
+      container.innerHTML = filtered.map(chat => {
+        const isActive = chat.id === state.activeChatId;
+        const persona = PERSONAS[chat.persona] || PERSONAS.assistant;
+        const lastMsg = chat.messages[chat.messages.length - 1];
+        const preview = lastMsg ? lastMsg.text.replace(/[*`#]/g, '').slice(0, 42) : 'Empty chat';
+        return `
+          <div data-chat-id="${chat.id}" class="chat-item group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition ${
+            isActive
+              ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 font-medium'
+              : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+          }">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <span class="text-base shrink-0">${persona.icon}</span>
+              <div class="min-w-0 flex-1">
+                <div class="text-xs truncate">${escapeHtml(chat.title)}</div>
+                <div class="text-[11px] text-slate-400 dark:text-slate-500 truncate">${escapeHtml(preview)}</div>
+              </div>
+            </div>
+            ${state.chats.length > 1 ? `
+              <button type="button" data-delete-chat="${chat.id}" class="delete-chat-btn opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition" title="Delete Chat">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+    function renderQuickPrompts() {
+      const chat = getActiveChat();
+      const persona = PERSONAS[chat.persona] || PERSONAS.assistant;
+      const bar = document.getElementById('quickPromptsBar');
+      bar.innerHTML = persona.prompts.map(p => `
+        <button type="button" data-prompt="${escapeHtml(p)}" class="quick-prompt-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/60 text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-800 transition">
+          ${escapeHtml(p)}
+        </button>
+      `).join('');
+    }
+    function renderMessages(isTyping = false) {
+      const chat = getActiveChat();
+      const persona = PERSONAS[chat.persona] || PERSONAS.assistant;
+      const container = document.getElementById('messagesContainer');
+      const html = chat.messages.map(msg => {
+        if (msg.role === 'user') {
+          return `
+            <div class="flex justify-end max-w-3xl mx-auto">
+              <div class="max-w-[82%] sm:max-w-[75%] rounded-2xl rounded-tr-xs bg-indigo-600 text-white px-4 py-2.5 shadow-xs">
+                <div class="text-sm leading-relaxed whitespace-pre-wrap break-words">${escapeHtml(msg.text)}</div>
+                <div class="mt-1 text-[10px] text-indigo-200 text-right">${escapeHtml(msg.time || '')}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          const encodedRaw = encodeURIComponent(msg.text);
+          return `
+            <div class="flex items-start gap-3 max-w-3xl mx-auto">
+              <div class="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-base shrink-0 mt-0.5">
+                ${persona.icon}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(persona.name)}</span>
+                  <span class="text-[10px] text-slate-400">${escapeHtml(msg.time || '')}</span>
+                </div>
+                <div class="rounded-2xl rounded-tl-xs bg-slate-100 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 px-4 py-3 text-sm text-slate-800 dark:text-slate-200 leading-relaxed break-words">
+                  ${formatBotMessage(msg.text)}
+                </div>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <button type="button" data-copy-msg="${encodedRaw}" class="copy-msg-btn text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <span>Copy</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+      const typingHtml = isTyping ? `
+        <div class="flex items-start gap-3 max-w-3xl mx-auto">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-base shrink-0">
+            ${persona.icon}
+          </div>
+          <div class="rounded-2xl rounded-tl-xs bg-slate-100 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 px-4 py-3 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-indigo-500 typing-dot-1"></span>
+            <span class="w-2 h-2 rounded-full bg-indigo-500 typing-dot-2"></span>
+            <span class="w-2 h-2 rounded-full bg-indigo-500 typing-dot-3"></span>
+          </div>
+        </div>
+      ` : '';
+      container.innerHTML = html + typingHtml;
+      container.scrollTop = container.scrollHeight;
+    }
+    function renderCustomRules() {
+      const list = document.getElementById('customRulesList');
+      if (state.customRules.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center">No custom rules yet. Add one above!</div>`;
+        return;
+      }
+      list.innerHTML = state.customRules.map(r => `
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="text-xs font-semibold text-violet-600 dark:text-violet-400">Keyword: "${escapeHtml(r.trigger)}"</div>
+            <div class="text-xs text-slate-600 dark:text-slate-300 mt-0.5 break-words">${escapeHtml(r.response)}</div>
+          </div>
+          <button type="button" data-delete-rule="${r.id}" class="delete-rule-btn p-1 rounded-md text-slate-400 hover:text-rose-500 transition" title="Remove Rule">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+    }
+    function renderAll() {
+      applyTheme();
+      renderTopBar();
+      renderSidebarChats();
+      renderQuickPrompts();
+      renderMessages(false);
+      renderCustomRules();
+    }
+    // --- Send Message Flow ---
+    let isGenerating = false;
+    async function handleSendMessage(rawText) {
+      const text = rawText.trim();
+      if (!text || isGenerating) return;
+      const chat = getActiveChat();
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (chat.messages.filter(m => m.role === 'user').length === 0) {
+        chat.title = text.slice(0, 32) + (text.length > 32 ? '...' : '');
+      }
+      chat.messages.push({
+        id: 'msg_u_' + Date.now(),
+        role: 'user',
+        text,
+        time: nowTime
+      });
+      chat.updatedAt = Date.now();
+      saveState();
+      const input = document.getElementById('messageInput');
+      input.value = '';
+      input.style.height = 'auto';
+      document.getElementById('charCounter').textContent = '0 chars';
+      isGenerating = true;
+      renderSidebarChats();
+      renderMessages(true);
+      let botReply = '';
+      if (state.geminiApiKey && state.geminiApiKey.trim().length > 5) {
+        try {
+          botReply = await fetchGeminiResponse(text, chat);
+        } catch (err) {
+          botReply = `⚠️ **Live Gemini API Error:** ${err.message}.\n\nFalling back to **Built-in Smart Engine**:\n\n` + generateLocalResponse(text, chat.persona);
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 420));
+        botReply = generateLocalResponse(text, chat.persona);
+      }
+      chat.messages.push({
+        id: 'msg_b_' + Date.now(),
+        role: 'bot',
+        text: botReply,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      chat.updatedAt = Date.now();
+      isGenerating = false;
+      saveState();
+      renderSidebarChats();
+      renderMessages(false);
+      speakText(botReply);
+    }
+    // --- Event Listeners ---
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      function toggleMobileSidebar(show) {
+        if (show) {
+          sidebar.classList.remove('-translate-x-full');
+          backdrop.classList.remove('hidden');
+        } else {
+          sidebar.classList.add('-translate-x-full');
+          backdrop.classList.add('hidden');
+        }
+      }
+      document.getElementById('openSidebarBtn').addEventListener('click', () => toggleMobileSidebar(true));
+      document.getElementById('closeSidebarBtn').addEventListener('click', () => toggleMobileSidebar(false));
+      backdrop.addEventListener('click', () => toggleMobileSidebar(false));
+      document.getElementById('newChatBtn').addEventListener('click', () => {
+        const currentPersona = document.getElementById('personaSelect').value || 'assistant';
+        const newChat = createInitialChat(currentPersona);
+        state.chats.unshift(newChat);
+        state.activeChatId = newChat.id;
+        saveState();
+        renderAll();
+        toggleMobileSidebar(false);
+        showToast('Started a new conversation');
+      });
+      document.getElementById('searchChatsInput').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderSidebarChats();
+      });
+      document.getElementById('chatListContainer').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.delete-chat-btn');
+        if (delBtn) {
+          e.stopPropagation();
+          const delId = delBtn.getAttribute('data-delete-chat');
+          if (state.chats.length <= 1) return;
+          state.chats = state.chats.filter(c => c.id !== delId);
+          if (state.activeChatId === delId) {
+            state.activeChatId = state.chats[0].id;
+          }
+          saveState();
+          renderAll();
+          showToast('Conversation removed');
+          return;
+        }
+        const item = e.target.closest('.chat-item');
+        if (item) {
+          state.activeChatId = item.getAttribute('data-chat-id');
+          saveState();
+          renderAll();
+          toggleMobileSidebar(false);
+        }
+      });
+      document.getElementById('personaSelect').addEventListener('change', (e) => {
+        const newPersona = e.target.value;
+        const chat = getActiveChat();
+        chat.persona = newPersona;
+        const pInfo = PERSONAS[newPersona];
+        chat.messages.push({
+          id: 'msg_switch_' + Date.now(),
+          role: 'bot',
+          text: pInfo.greeting,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        saveState();
+        renderAll();
+        showToast(`Switched to ${pInfo.name}`);
+      });
+      document.getElementById('voiceToggleBtn').addEventListener('click', () => {
+        state.voiceEnabled = !state.voiceEnabled;
+        if (!state.voiceEnabled && 'speechSynthesis' in window) {
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+        }
+        saveState();
+        renderTopBar();
+        showToast(state.voiceEnabled ? 'Voice Read-Aloud ON' : 'Voice Read-Aloud OFF');
+      });
+      document.getElementById('exportChatBtn').addEventListener('click', () => {
+        const chat = getActiveChat();
+        const lines = chat.messages.map(m => `[${m.time}] ${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
+        const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_transcript.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Chat transcript downloaded!');
+      });
+      document.getElementById('clearChatBtn').addEventListener('click', () => {
+        const chat = getActiveChat();
+        const persona = PERSONAS[chat.persona] || PERSONAS.assistant;
+        chat.messages = [{
+          id: 'msg_reset_' + Date.now(),
+          role: 'bot',
+          text: persona.greeting,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }];
+        saveState();
+        renderMessages(false);
+        showToast('Cleared current chat messages');
+      });
+      document.getElementById('themeToggleBtn').addEventListener('click', () => {
+        state.theme = state.theme === 'dark' ? 'light' : 'dark';
+        saveState();
+        applyTheme();
+      });
+      document.getElementById('quickPromptsBar').addEventListener('click', (e) => {
+        const btn = e.target.closest('.quick-prompt-btn');
+        if (btn) {
+          handleSendMessage(btn.getAttribute('data-prompt'));
+        }
+      });
+      document.getElementById('messagesContainer').addEventListener('click', (e) => {
+        const codeBtn = e.target.closest('.copy-code-btn');
+        if (codeBtn) {
+          copyTextToClipboard(decodeURIComponent(codeBtn.getAttribute('data-copy-code')));
+          return;
+        }
+        const msgBtn = e.target.closest('.copy-msg-btn');
+        if (msgBtn) {
+          copyTextToClipboard(decodeURIComponent(msgBtn.getAttribute('data-copy-msg')));
+        }
+      });
+      document.getElementById('insertMathBtn').addEventListener('click', () => {
+        handleSendMessage('Calculate BMI for 70 kg and 175 cm');
+      });
+      document.getElementById('insertCodeBtn').addEventListener('click', () => {
+        handleSendMessage('Create a high-protein balanced daily meal plan');
+      });
+      document.getElementById('insertQuizBtn').addEventListener('click', () => {
+        handleSendMessage('Quiz me with a healthcare trivia question');
+      });
+      const messageInput = document.getElementById('messageInput');
+      messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 140) + 'px';
+        document.getElementById('charCounter').textContent = `${messageInput.value.length} chars`;
+      });
+      messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSendMessage(messageInput.value);
+        }
+      });
+      document.getElementById('chatForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleSendMessage(messageInput.value);
+      });
+      const trainModal = document.getElementById('trainModal');
+      document.getElementById('openTrainModalBtn').addEventListener('click', () => {
+        trainModal.classList.remove('hidden');
+        trainModal.classList.add('flex');
+      });
+      document.getElementById('closeTrainModalBtn').addEventListener('click', () => {
+        trainModal.classList.add('hidden');
+        trainModal.classList.remove('flex');
+      });
+      document.getElementById('addRuleForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const triggerEl = document.getElementById('ruleTriggerInput');
+        const responseEl = document.getElementById('ruleResponseInput');
+        const trigger = triggerEl.value.trim();
+        const response = responseEl.value.trim();
+        if (!trigger || !response) return;
+        state.customRules.unshift({
+          id: 'rule_' + Date.now(),
+          trigger,
+          response
+        });
+        saveState();
+        triggerEl.value = '';
+        responseEl.value = '';
+        renderCustomRules();
+        renderTopBar();
+        showToast(`Added custom rule for "${trigger}"`);
+      });
+      document.getElementById('customRulesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('.delete-rule-btn');
+        if (btn) {
+          const id = btn.getAttribute('data-delete-rule');
+          state.customRules = state.customRules.filter(r => r.id !== id);
+          saveState();
+          renderCustomRules();
+          renderTopBar();
+          showToast('Rule deleted');
+        }
+      });
+      const apiModal = document.getElementById('apiModal');
+      function openApiModal() {
+        document.getElementById('botNameInput').value = state.userName || '';
+        document.getElementById('geminiKeyInput').value = state.geminiApiKey || '';
+        apiModal.classList.remove('hidden');
+        apiModal.classList.add('flex');
+      }
+      function closeApiModal() {
+        apiModal.classList.add('hidden');
+        apiModal.classList.remove('flex');
+      }
+      document.getElementById('openApiModalBtn').addEventListener('click', openApiModal);
+      document.getElementById('closeApiModalBtn').addEventListener('click', closeApiModal);
+      document.getElementById('cancelApiModalBtn').addEventListener('click', closeApiModal);
+      document.getElementById('apiSettingsForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.userName = document.getElementById('botNameInput').value.trim();
+        state.geminiApiKey = document.getElementById('geminiKeyInput').value.trim();
+        saveState();
+        renderTopBar();
+        closeApiModal();
+        showToast('Engine & profile settings saved!');
+      });
+    });
+  </script>
+</body>
+</html>
